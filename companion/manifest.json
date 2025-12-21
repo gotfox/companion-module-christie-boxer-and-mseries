@@ -1,18 +1,13 @@
 {
-	"id": "your-module-name",
-	"name": "your-module-name",
-	"shortname": "module-shortname",
-	"description": "A short one line description of your module",
-	"version": "0.0.0",
+	"id": "christie-boxer-and-mseries",
+	"name": "christie-boxer-and-mseries",
+	"shortname": "christie-projector",
+	"description": "Control Christie Digital Boxer 4K and M-Series professional projectors",
+	"version": "1.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
-	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
-	"maintainers": [
-		{
-			"name": "Your name",
-			"email": "Your email"
-		}
-	],
+	"repository": "git+https://github.com/bitfocus/companion-module-christie-boxer-and-mseries.git",
+	"bugs": "https://github.com/bitfocus/companion-module-christie-boxer-and-mseries/issues",
+	"maintainers": [],
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",
@@ -20,7 +15,7 @@
 		"entrypoint": "../dist/main.js"
 	},
 	"legacyIds": [],
-	"manufacturer": "Your company",
-	"products": ["Your product"],
-	"keywords": []
+	"manufacturer": "Christie Digital",
+	"products": ["Boxer 4K", "M-Series", "D4K"],
+	"keywords": ["projector", "christie", "boxer", "mseries", "d4k", "professional"]
 }
