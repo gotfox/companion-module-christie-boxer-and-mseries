@@ -5,7 +5,14 @@ import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { ChristieConnection } from './connection.js'
-import { detectProjectorType, parseResponse, getLampCodes, parseLampInfo, type ProjectorType } from './utils.js'
+import {
+	detectProjectorType,
+	parseResponse,
+	getLampVoltageCodes,
+	getLampStaticCodes,
+	parseLampInfo,
+	type ProjectorType,
+} from './utils.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
@@ -132,9 +139,55 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.setVariableValues({ signal_status: signalParsed.value })
 			}
 
+			// Poll lamp voltage (fast polling)
+			await this.pollLampVoltage()
+
 			this.checkFeedbacks()
 		} catch (error) {
 			this.log('warn', `Polling error: ${error}`)
+		}
+	}
+
+	async pollLampVoltage(): Promise<void> {
+		const projectorType = this.getProjectorType()
+		if (projectorType === 'unknown') {
+			return
+		}
+
+		// Get voltage codes for this projector type
+		const voltageCodes = getLampVoltageCodes(projectorType)
+
+		// Poll each lamp's voltage
+		for (const [lampName, codes] of Object.entries(voltageCodes)) {
+			for (const code of codes) {
+				try {
+					const response = await this.connection.sendCommand(`SST+LMP!${code.toString().padStart(3, '0')}?`)
+					const parsed = parseResponse(response)
+					if (parsed) {
+						// Map lamp name to number
+						let lampNumber = 1
+						if (projectorType === 'boxer') {
+							const boxerMapping: { [key: string]: number } = {
+								A1: 1,
+								A2: 2,
+								A3: 3,
+								B1: 4,
+								B2: 5,
+								B3: 6,
+							}
+							lampNumber = boxerMapping[lampName] || 1
+						} else {
+							lampNumber = parseInt(lampName, 10)
+						}
+
+						this.setVariableValues({
+							[`lamp_${lampNumber}_voltage`]: parsed.value,
+						})
+					}
+				} catch (error) {
+					// Don't log errors for voltage polling - it's frequent and errors would be noisy
+				}
+			}
 		}
 	}
 
@@ -150,10 +203,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				return
 			}
 
-			this.log('debug', 'Polling lamp information')
+			this.log('debug', 'Polling lamp static information (hours, serial, install date)')
 
-			// Get lamp codes based on projector type
-			const lampCodes = getLampCodes(projectorType)
+			// Get static lamp codes (hours, serial, install date, status)
+			const lampCodes = getLampStaticCodes(projectorType)
 
 			// Poll each lamp
 			for (const [lampName, codes] of Object.entries(lampCodes)) {
@@ -191,11 +244,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					lampNumber = parseInt(lampName, 10)
 				}
 
+				// Update static lamp info (hours, serial, install date, status)
 				this.setVariableValues({
-					[`lamp_${lampNumber}_state`]: lampInfo.state,
 					[`lamp_${lampNumber}_hours`]: lampInfo.hours,
 					[`lamp_${lampNumber}_status`]: lampInfo.status,
-					[`lamp_${lampNumber}_voltage`]: lampInfo.voltage,
 					[`lamp_${lampNumber}_serial`]: lampInfo.serialNumber,
 					[`lamp_${lampNumber}_install_date`]: lampInfo.installDate || 'N/A',
 				})

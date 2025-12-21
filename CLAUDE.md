@@ -31,12 +31,12 @@ This module provides complete control and monitoring of Christie Digital profess
   - Power status (Off, On, Cooling, Warming)
   - Shutter status (Open, Closed)
   - Signal presence
+  - Lamp voltage (Boxer only) - monitored in real-time
 
-- **Lamp Polling**: Every 30 minutes
+- **Lamp Info Polling**: Every 30 minutes
   - Individual lamp hours tracking
   - Lamp state and status
-  - Serial numbers and install dates
-  - Voltage monitoring (Boxer only)
+  - Serial numbers and install dates (static information)
 
 ### Command Queue System
 - Sequential command/response handling

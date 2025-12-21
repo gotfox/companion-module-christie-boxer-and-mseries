@@ -107,12 +107,12 @@ The module automatically polls projector status at your configured interval (def
 - Power state
 - Shutter state
 - Signal presence
+- **Lamp voltage** (Boxer only) - updated every 3 seconds for real-time monitoring
 
-### Lamp Polling
-Lamp information is polled every 30 minutes to track:
+### Lamp Info Polling
+Static lamp information is polled every 30 minutes to track:
 - Runtime hours
 - Lamp state and status
-- Voltage levels
 - Serial numbers
 - Installation dates
 
