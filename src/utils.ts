@@ -28,6 +28,7 @@ export function cleanString(str: string): string {
 /**
  * Parse a Christie projector response
  * Format: (CMD!value "description") or (CMD!subcode errorcode "value" "description")
+ * Also handles: (CMD!subcode errorcode value1 value2...) without quotes
  */
 export function parseResponse(response: string): ParsedResponse | null {
 	// Remove outer parentheses
@@ -54,6 +55,17 @@ export function parseResponse(response: string): ParsedResponse | null {
 		}
 	}
 
+	// Try to match: subcode errorcode value1 value2 (no quotes, space-separated numbers)
+	const multiValueMatch = remainder.match(/^(\d+)\s+(\d+)\s+(.+)$/)
+	if (multiValueMatch) {
+		return {
+			command,
+			subcode: multiValueMatch[1],
+			errorCode: multiValueMatch[2],
+			value: multiValueMatch[3].split(/\s+/)[0], // First additional value
+		}
+	}
+
 	// Try to match: value "description"
 	const simpleMatch = remainder.match(/^(\d+)\s+"([^"]*)"/)
 	if (simpleMatch) {
@@ -76,7 +88,7 @@ export function parseResponse(response: string): ParsedResponse | null {
 	// Just a simple value
 	return {
 		command,
-		value: remainder,
+		value: remainder.trim(),
 	}
 }
 
