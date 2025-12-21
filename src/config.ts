@@ -3,6 +3,8 @@ import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 export interface ModuleConfig {
 	host: string
 	port: number
+	projectorType: 'auto' | 'boxer' | 'mseries'
+	pollingInterval: number
 }
 
 export function GetConfigFields(): SomeCompanionConfigField[] {
@@ -21,7 +23,28 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			width: 4,
 			min: 1,
 			max: 65535,
-			default: 8000,
+			default: 3002,
+		},
+		{
+			type: 'dropdown',
+			id: 'projectorType',
+			label: 'Projector Type',
+			width: 6,
+			default: 'auto',
+			choices: [
+				{ id: 'auto', label: 'Auto-detect' },
+				{ id: 'boxer', label: 'Boxer 4K' },
+				{ id: 'mseries', label: 'M-Series' },
+			],
+		},
+		{
+			type: 'number',
+			id: 'pollingInterval',
+			label: 'Polling Interval (ms)',
+			width: 6,
+			min: 500,
+			max: 30000,
+			default: 3000,
 		},
 	]
 }
