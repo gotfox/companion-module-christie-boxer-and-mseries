@@ -244,8 +244,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					lampNumber = parseInt(lampName, 10)
 				}
 
-				// Update static lamp info (hours, serial, install date, status)
+				// Update static lamp info (state, hours, serial, install date, status)
 				this.setVariableValues({
+					[`lamp_${lampNumber}_state`]: lampInfo.state,
 					[`lamp_${lampNumber}_hours`]: lampInfo.hours,
 					[`lamp_${lampNumber}_status`]: lampInfo.status,
 					[`lamp_${lampNumber}_serial`]: lampInfo.serialNumber,

@@ -177,23 +177,23 @@ export function getLampVoltageCodes(type: ProjectorType): { [key: string]: numbe
 
 /**
  * Get static info codes for slow polling (polled every 30 minutes)
- * Includes: Hours, Serial Number, Install Date, Status
+ * Includes: State, Hours, Serial Number, Install Date, Status
  */
 export function getLampStaticCodes(type: ProjectorType): { [key: string]: number[] } {
 	if (type === 'boxer') {
 		return {
-			A1: [1, 3, 4], // Hours, Install Date, S/N
-			A2: [41, 43, 44],
-			A3: [51, 53, 54],
-			B1: [61, 63, 64],
-			B2: [71, 73, 74],
-			B3: [81, 83, 84],
+			A1: [0, 1, 3, 4], // State, Hours, Install Date, S/N
+			A2: [40, 41, 43, 44],
+			A3: [50, 51, 53, 54],
+			B1: [60, 61, 63, 64],
+			B2: [70, 71, 73, 74],
+			B3: [80, 81, 83, 84],
 		}
 	} else {
 		// M-Series
 		return {
-			'1': [1, 2, 8], // Status, S/N, Hours
-			'2': [31, 32, 38],
+			'1': [0, 1, 2, 8], // State, Status, S/N, Hours
+			'2': [30, 31, 32, 38],
 		}
 	}
 }

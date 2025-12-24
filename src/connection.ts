@@ -79,7 +79,8 @@ export class ChristieConnection {
 		this.receiveBuffer += data.toString()
 
 		// Look for complete responses (enclosed in parentheses)
-		const responseMatch = this.receiveBuffer.match(/\([^)]+\)/)
+		// Regex handles escaped parentheses like \(h:m\) inside the response
+		const responseMatch = this.receiveBuffer.match(/\((?:[^)\\]|\\[()])*\)/)
 		if (responseMatch) {
 			const response = responseMatch[0]
 			this.receiveBuffer = this.receiveBuffer.substring(responseMatch.index! + response.length)
