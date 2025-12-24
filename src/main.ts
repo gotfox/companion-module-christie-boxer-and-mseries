@@ -85,20 +85,20 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 		// Poll general status at configured interval
 		this.pollTimer = setInterval(() => {
-			this.pollStatus()
+			void this.pollStatus()
 		}, this.config.pollingInterval)
 
 		// Poll lamp hours less frequently (every 30 minutes)
 		this.lampPollTimer = setInterval(
 			() => {
-				this.pollLampInfo()
+				void this.pollLampInfo()
 			},
-			30 * 60 * 1000
+			30 * 60 * 1000,
 		)
 
 		// Do an immediate poll
-		this.pollStatus()
-		this.pollLampInfo()
+		void this.pollStatus()
+		void this.pollLampInfo()
 	}
 
 	stopPolling(): void {
@@ -122,16 +122,21 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const powerResponse = await this.connection.sendCommand('PWR?')
 			const powerParsed = parseResponse(powerResponse)
 			if (powerParsed) {
-				// Use description if available, otherwise use value
-				this.setVariableValues({ power_status: powerParsed.description || powerParsed.value })
+				// Use description and clean up escaped parentheses like \(Lamp On\)
+				const powerStatus = powerParsed.description || powerParsed.value
+				// Remove escaped parentheses and content: "On \(Lamp On\)" -> "On"
+				const cleanedPower = powerStatus.replace(/\s*\\?\([^)]*\\?\)/g, '').trim()
+				this.setVariableValues({ power_status: cleanedPower })
 			}
 
 			// Poll shutter status
 			const shutterResponse = await this.connection.sendCommand('SHU?')
 			const shutterParsed = parseResponse(shutterResponse)
 			if (shutterParsed) {
-				// Use description if available, otherwise use value
-				this.setVariableValues({ shutter_status: shutterParsed.description || shutterParsed.value })
+				// Use description and clean up any escaped content
+				const shutterStatus = shutterParsed.description || shutterParsed.value
+				const cleanedShutter = shutterStatus.replace(/\s*\\?\([^)]*\\?\)/g, '').trim()
+				this.setVariableValues({ shutter_status: cleanedShutter })
 			}
 
 			// Poll signal status
@@ -187,7 +192,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 							[`lamp_${lampNumber}_voltage`]: parsed.value,
 						})
 					}
-				} catch (error) {
+				} catch (_error) {
 					// Don't log errors for voltage polling - it's frequent and errors would be noisy
 				}
 			}
@@ -248,7 +253,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				}
 
 				// Parse lamp info with correct base code
-				const lampInfo = parseLampInfo(responses, projectorType as 'boxer' | 'mseries', baseCode)
+				const lampInfo = parseLampInfo(responses, projectorType, baseCode)
 
 				// Update static lamp info (state, hours, serial, install date, status)
 				this.setVariableValues({

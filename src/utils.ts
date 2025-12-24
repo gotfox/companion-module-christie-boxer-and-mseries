@@ -22,7 +22,10 @@ export type ProjectorType = 'boxer' | 'mseries' | 'unknown'
  */
 export function cleanString(str: string): string {
 	// Remove escaped parentheses and other escape sequences
-	return str.replace(/\\[()\[\]]/g, '').replace(/\s*\([^)]*\)\s*/g, '').trim()
+	return str
+		.replace(/\\[()[\]]/g, '')
+		.replace(/\s*\([^)]*\)\s*/g, '')
+		.trim()
 }
 
 /**
@@ -192,8 +195,8 @@ export function getLampStaticCodes(type: ProjectorType): { [key: string]: number
 	} else {
 		// M-Series
 		return {
-			'1': [0, 1, 2, 8], // State, Status, S/N, Hours
-			'2': [30, 31, 32, 38],
+			'1': [0, 1, 2, 7, 8], // State, Status, S/N, Install Date, Hours
+			'2': [30, 31, 32, 37, 38],
 		}
 	}
 }
@@ -205,7 +208,7 @@ export function getLampStaticCodes(type: ProjectorType): { [key: string]: number
 export function parseLampInfo(
 	responses: { [key: number]: ParsedResponse },
 	lampType: 'boxer' | 'mseries',
-	baseCode: number = 0
+	baseCode: number = 0,
 ): LampInfo {
 	if (lampType === 'boxer') {
 		return {
@@ -222,6 +225,7 @@ export function parseLampInfo(
 			state: responses[baseCode + 0]?.value || 'Unknown',
 			status: responses[baseCode + 1]?.value || 'Unknown',
 			serialNumber: responses[baseCode + 2]?.value || 'Unknown',
+			installDate: responses[baseCode + 7]?.value,
 			hours: responses[baseCode + 8] ? formatHours(responses[baseCode + 8].value) : 'Unknown',
 			voltage: 'N/A', // M-Series doesn't expose voltage in simple query
 		}
