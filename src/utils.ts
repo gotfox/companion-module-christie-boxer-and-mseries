@@ -103,6 +103,7 @@ export function formatHours(hoursString: string): string {
 
 /**
  * Detect projector type from PNG? response
+ * Response format: (PNG!055 001 008 002) where 055 is the type code in subcode field
  * (PNG!044 002 005 003) -> M-Series (44)
  * (PNG!055 ...) -> Boxer 4K (55)
  * (PNG!054 ...) -> D4K (54)
@@ -113,7 +114,8 @@ export function detectProjectorType(response: string): ProjectorType {
 		return 'unknown'
 	}
 
-	const typeCode = parsed.value || parsed.subcode
+	// For PNG responses, the type code is in the subcode field (055), not value (008)
+	const typeCode = parsed.subcode || parsed.value
 	if (typeCode === '044' || typeCode === '44') {
 		return 'mseries'
 	} else if (typeCode === '055' || typeCode === '55') {

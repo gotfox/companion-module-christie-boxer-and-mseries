@@ -5,14 +5,7 @@ import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { ChristieConnection } from './connection.js'
-import {
-	detectProjectorType,
-	parseResponse,
-	getLampVoltageCodes,
-	getLampStaticCodes,
-	parseLampInfo,
-	type ProjectorType,
-} from './utils.js'
+import { detectProjectorType, parseResponse, type ProjectorType } from './utils.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
@@ -149,6 +142,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async pollLampVoltage(): Promise<void> {
+		// NOTE: Lamp voltage polling is disabled because many Boxer models
+		// don't support SST+LMP commands (ERR00009 "Cannot find status group")
+		// Re-enable this code block if your projector model supports these commands
+		return
+
+		/*
 		const projectorType = this.getProjectorType()
 		if (projectorType === 'unknown') {
 			return
@@ -189,6 +188,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				}
 			}
 		}
+		*/
 	}
 
 	async pollLampInfo(): Promise<void> {
@@ -196,6 +196,13 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
+		// NOTE: Lamp polling is disabled because many Boxer models
+		// don't support SST+LMP commands (ERR00009 "Cannot find status group")
+		// Re-enable this code block if your projector model supports these commands
+		this.log('debug', 'Lamp polling disabled - SST+LMP commands not supported on this model')
+		return
+
+		/*
 		try {
 			const projectorType = this.getProjectorType()
 			if (projectorType === 'unknown') {
@@ -226,7 +233,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				}
 
 				// Parse lamp info and update variables
-				const lampInfo = parseLampInfo(responses, projectorType)
+				const lampInfo = parseLampInfo(responses, projectorType as 'boxer' | 'mseries')
 
 				// Map Boxer lamp names (A1, A2, etc) to indices (1, 2, etc)
 				let lampNumber = 1
@@ -257,6 +264,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		} catch (error) {
 			this.log('warn', `Lamp polling error: ${error}`)
 		}
+		*/
 	}
 
 	async destroy(): Promise<void> {
