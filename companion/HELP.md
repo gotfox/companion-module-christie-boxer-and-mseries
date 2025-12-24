@@ -107,14 +107,11 @@ The module automatically polls projector status at your configured interval (def
 - Power state
 - Shutter state
 - Signal presence
-- **Lamp voltage** (Boxer only) - updated every 3 seconds for real-time monitoring
 
-### Lamp Info Polling
-Static lamp information is polled every 30 minutes to track:
-- Runtime hours
-- Lamp state and status
-- Serial numbers
-- Installation dates
+### Lamp Monitoring Note
+**Lamp polling is currently disabled** because many Boxer 4K models don't support the `SST+LMP` status commands (returns error ERR00009 "Cannot find status group").
+
+If your projector model supports lamp queries, the code can be re-enabled in `src/main.ts` by uncommenting the `pollLampVoltage()` and `pollLampInfo()` functions.
 
 ## Troubleshooting
 

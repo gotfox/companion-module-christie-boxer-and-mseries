@@ -16,8 +16,8 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 - **Test Patterns**: 25+ built-in test patterns (grids, color bars, convergence, etc.)
 - **Lens Control**: Focus, Zoom, Horizontal/Vertical offset
 - **Input Selection**: Select from 20+ input sources
-- **Real-Time Monitoring**: Configurable status polling (default 3 seconds) including lamp voltage
-- **Lamp Tracking**: Individual lamp hours, voltage (real-time), serial numbers, install dates
+- **Real-Time Monitoring**: Configurable status polling (default 3 seconds)
+- **Lamp Tracking**: (Note: Many Boxer models don't support SST+LMP commands - currently disabled)
 - **Custom Commands**: Send arbitrary commands with variable support
 
 ## Connection
