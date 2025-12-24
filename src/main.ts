@@ -122,20 +122,23 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const powerResponse = await this.connection.sendCommand('PWR?')
 			const powerParsed = parseResponse(powerResponse)
 			if (powerParsed) {
-				this.setVariableValues({ power_status: powerParsed.value })
+				// Use description if available, otherwise use value
+				this.setVariableValues({ power_status: powerParsed.description || powerParsed.value })
 			}
 
 			// Poll shutter status
 			const shutterResponse = await this.connection.sendCommand('SHU?')
 			const shutterParsed = parseResponse(shutterResponse)
 			if (shutterParsed) {
-				this.setVariableValues({ shutter_status: shutterParsed.value })
+				// Use description if available, otherwise use value
+				this.setVariableValues({ shutter_status: shutterParsed.description || shutterParsed.value })
 			}
 
 			// Poll signal status
 			const signalResponse = await this.connection.sendCommand('SST+SIGN!000?')
 			const signalParsed = parseResponse(signalResponse)
 			if (signalParsed) {
+				// Use value for signal status (contains the full signal info)
 				this.setVariableValues({ signal_status: signalParsed.value })
 			}
 
@@ -225,24 +228,27 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					}
 				}
 
-				// Parse lamp info and update variables
-				const lampInfo = parseLampInfo(responses, projectorType as 'boxer' | 'mseries')
-
-				// Map Boxer lamp names (A1, A2, etc) to indices (1, 2, etc)
+				// Calculate base code and lamp number for this lamp
 				let lampNumber = 1
+				let baseCode = 0
 				if (projectorType === 'boxer') {
-					const boxerMapping: { [key: string]: number } = {
-						A1: 1,
-						A2: 2,
-						A3: 3,
-						B1: 4,
-						B2: 5,
-						B3: 6,
+					const boxerMapping: { [key: string]: { number: number; baseCode: number } } = {
+						A1: { number: 1, baseCode: 0 },
+						A2: { number: 2, baseCode: 40 },
+						A3: { number: 3, baseCode: 50 },
+						B1: { number: 4, baseCode: 60 },
+						B2: { number: 5, baseCode: 70 },
+						B3: { number: 6, baseCode: 80 },
 					}
-					lampNumber = boxerMapping[lampName] || 1
+					lampNumber = boxerMapping[lampName]?.number || 1
+					baseCode = boxerMapping[lampName]?.baseCode || 0
 				} else {
 					lampNumber = parseInt(lampName, 10)
+					baseCode = lampNumber === 1 ? 0 : 30
 				}
+
+				// Parse lamp info with correct base code
+				const lampInfo = parseLampInfo(responses, projectorType as 'boxer' | 'mseries', baseCode)
 
 				// Update static lamp info (state, hours, serial, install date, status)
 				this.setVariableValues({

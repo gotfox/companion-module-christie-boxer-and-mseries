@@ -200,27 +200,29 @@ export function getLampStaticCodes(type: ProjectorType): { [key: string]: number
 
 /**
  * Parse lamp information from multiple responses
+ * Pass the base code for the lamp (0 for A1, 40 for A2, 50 for A3, etc.)
  */
 export function parseLampInfo(
 	responses: { [key: number]: ParsedResponse },
-	lampType: 'boxer' | 'mseries'
+	lampType: 'boxer' | 'mseries',
+	baseCode: number = 0
 ): LampInfo {
 	if (lampType === 'boxer') {
 		return {
-			state: responses[0]?.value || 'Unknown',
-			hours: responses[1] ? formatHours(responses[1].value) : 'Unknown',
-			installDate: responses[3]?.value,
-			serialNumber: responses[4]?.value || 'Unknown',
-			voltage: responses[6]?.value || 'Unknown',
+			state: responses[baseCode + 0]?.value || 'Unknown',
+			hours: responses[baseCode + 1] ? formatHours(responses[baseCode + 1].value) : 'Unknown',
+			installDate: responses[baseCode + 3]?.value,
+			serialNumber: responses[baseCode + 4]?.value || 'Unknown',
+			voltage: responses[baseCode + 6]?.value || 'Unknown',
 			status: 'OK', // Boxer doesn't have separate status field
 		}
 	} else {
-		// M-Series
+		// M-Series uses different code layout
 		return {
-			state: responses[0]?.value || 'Unknown',
-			status: responses[1]?.value || 'Unknown',
-			serialNumber: responses[2]?.value || 'Unknown',
-			hours: responses[8] ? formatHours(responses[8].value) : 'Unknown',
+			state: responses[baseCode + 0]?.value || 'Unknown',
+			status: responses[baseCode + 1]?.value || 'Unknown',
+			serialNumber: responses[baseCode + 2]?.value || 'Unknown',
+			hours: responses[baseCode + 8] ? formatHours(responses[baseCode + 8].value) : 'Unknown',
 			voltage: 'N/A', // M-Series doesn't expose voltage in simple query
 		}
 	}
