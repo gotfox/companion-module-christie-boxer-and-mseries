@@ -5,7 +5,14 @@ import { UpgradeScripts } from './upgrades.js'
 import { UpdateActions } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { ChristieConnection } from './connection.js'
-import { detectProjectorType, parseResponse, type ProjectorType } from './utils.js'
+import {
+	detectProjectorType,
+	parseResponse,
+	getLampVoltageCodes,
+	getLampStaticCodes,
+	parseLampInfo,
+	type ProjectorType,
+} from './utils.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
@@ -142,12 +149,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async pollLampVoltage(): Promise<void> {
-		// NOTE: Lamp voltage polling is disabled because many Boxer models
-		// don't support SST+LMP commands (ERR00009 "Cannot find status group")
-		// Re-enable this code block if your projector model supports these commands
-		return
-
-		/*
 		const projectorType = this.getProjectorType()
 		if (projectorType === 'unknown') {
 			return
@@ -160,7 +161,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		for (const [lampName, codes] of Object.entries(voltageCodes)) {
 			for (const code of codes) {
 				try {
-					const response = await this.connection.sendCommand(`SST+LMP!${code.toString().padStart(3, '0')}?`)
+					const response = await this.connection.sendCommand(`SST+LAMP!${code.toString().padStart(3, '0')}?`)
 					const parsed = parseResponse(response)
 					if (parsed) {
 						// Map lamp name to number
@@ -188,7 +189,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				}
 			}
 		}
-		*/
 	}
 
 	async pollLampInfo(): Promise<void> {
@@ -196,13 +196,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
-		// NOTE: Lamp polling is disabled because many Boxer models
-		// don't support SST+LMP commands (ERR00009 "Cannot find status group")
-		// Re-enable this code block if your projector model supports these commands
-		this.log('debug', 'Lamp polling disabled - SST+LMP commands not supported on this model')
-		return
-
-		/*
 		try {
 			const projectorType = this.getProjectorType()
 			if (projectorType === 'unknown') {
@@ -222,7 +215,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				// Query each code for this lamp
 				for (const code of codes) {
 					try {
-						const response = await this.connection.sendCommand(`SST+LMP!${code.toString().padStart(3, '0')}?`)
+						const response = await this.connection.sendCommand(`SST+LAMP!${code.toString().padStart(3, '0')}?`)
 						const parsed = parseResponse(response)
 						if (parsed) {
 							responses[code] = parsed
@@ -264,7 +257,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		} catch (error) {
 			this.log('warn', `Lamp polling error: ${error}`)
 		}
-		*/
 	}
 
 	async destroy(): Promise<void> {
