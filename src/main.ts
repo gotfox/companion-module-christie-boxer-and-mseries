@@ -150,7 +150,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const testPatternResponse = await this.connection.sendCommand('ITP?')
 			const testPatternParsed = parseResponse(testPatternResponse)
 			if (testPatternParsed) {
-				this.setVariableValues({ test_pattern: testPatternParsed.value })
+				// Use description field (e.g., "Off") instead of value (e.g., "000")
+				this.setVariableValues({ test_pattern: testPatternParsed.description || testPatternParsed.value })
 			}
 
 			// Poll date and time
@@ -258,11 +259,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				]
 
 				for (const lamp of lampMapping) {
-					const state = lampDataMap.get(`${lamp.baseCode}`)?.value || 'Unknown'
-					const hours = lampDataMap.get(`${lamp.baseCode + 1}`)?.value || 'Unknown'
-					const installDate = lampDataMap.get(`${lamp.baseCode + 3}`)?.value || 'N/A'
-					const serial = lampDataMap.get(`${lamp.baseCode + 4}`)?.value || 'Unknown'
-					const voltage = lampDataMap.get(`${lamp.baseCode + 6}`)?.value || 'Unknown'
+					// Pad subcode to 3 digits for Map lookup
+					const state = lampDataMap.get((lamp.baseCode + 0).toString().padStart(3, '0'))?.value || 'Unknown'
+					const hours = lampDataMap.get((lamp.baseCode + 1).toString().padStart(3, '0'))?.value || 'Unknown'
+					const installDate = lampDataMap.get((lamp.baseCode + 3).toString().padStart(3, '0'))?.value || 'N/A'
+					const serial = lampDataMap.get((lamp.baseCode + 4).toString().padStart(3, '0'))?.value || 'Unknown'
+					const voltage = lampDataMap.get((lamp.baseCode + 6).toString().padStart(3, '0'))?.value || 'Unknown'
 
 					this.setVariableValues({
 						[`lamp_${lamp.number}_state`]: state,
@@ -281,11 +283,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				]
 
 				for (const lamp of lampMapping) {
-					const state = lampDataMap.get(`${lamp.baseCode}`)?.value || 'Unknown'
-					const status = lampDataMap.get(`${lamp.baseCode + 1}`)?.value || 'Unknown'
-					const serial = lampDataMap.get(`${lamp.baseCode + 2}`)?.value || 'Unknown'
-					const installDate = lampDataMap.get(`${lamp.baseCode + 7}`)?.value || 'N/A'
-					const hours = lampDataMap.get(`${lamp.baseCode + 8}`)?.value || 'Unknown'
+					// Pad subcode to 3 digits for Map lookup
+					const state = lampDataMap.get((lamp.baseCode + 0).toString().padStart(3, '0'))?.value || 'Unknown'
+					const status = lampDataMap.get((lamp.baseCode + 1).toString().padStart(3, '0'))?.value || 'Unknown'
+					const serial = lampDataMap.get((lamp.baseCode + 2).toString().padStart(3, '0'))?.value || 'Unknown'
+					const installDate = lampDataMap.get((lamp.baseCode + 7).toString().padStart(3, '0'))?.value || 'N/A'
+					const hours = lampDataMap.get((lamp.baseCode + 8).toString().padStart(3, '0'))?.value || 'Unknown'
 
 					this.setVariableValues({
 						[`lamp_${lamp.number}_state`]: state,
@@ -333,25 +336,30 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 				const updates: Record<string, string> = {}
 				for (const signal of signalMapping) {
-					const value = signalDataMap.get(signal.code)?.value || 'Unknown'
-					updates[signal.variable] = value
+					const rawValue = signalDataMap.get(signal.code)?.value || 'Unknown'
+					// Clean escaped characters like \(
+					const cleanValue = rawValue.replace(/\\([()[\]])/g, '$1')
+					updates[signal.variable] = cleanValue
 				}
 				this.setVariableValues(updates)
 			} else if (projectorType === 'mseries') {
 				// M-Series main and PIP signal
+				// Helper to clean escaped characters
+				const clean = (val: string) => val.replace(/\\([()[\]])/g, '$1')
+
 				const updates: Record<string, string> = {
-					main_signal_state: signalDataMap.get('000')?.value || 'Unknown',
-					main_signal_frequency: signalDataMap.get('001')?.value || 'Unknown',
-					main_signal_sync_width: signalDataMap.get('002')?.value || 'Unknown',
-					main_signal_sync_type: signalDataMap.get('003')?.value || 'Unknown',
-					main_signal_type: signalDataMap.get('004')?.value || 'Unknown',
-					main_signal_pixel_rate: signalDataMap.get('005')?.value || 'Unknown',
-					pip_signal_state: signalDataMap.get('010')?.value || 'Unknown',
-					pip_signal_frequency: signalDataMap.get('011')?.value || 'Unknown',
-					pip_signal_sync_width: signalDataMap.get('012')?.value || 'Unknown',
-					pip_signal_sync_type: signalDataMap.get('013')?.value || 'Unknown',
-					pip_signal_type: signalDataMap.get('014')?.value || 'Unknown',
-					pip_signal_pixel_rate: signalDataMap.get('015')?.value || 'Unknown',
+					main_signal_state: clean(signalDataMap.get('000')?.value || 'Unknown'),
+					main_signal_frequency: clean(signalDataMap.get('001')?.value || 'Unknown'),
+					main_signal_sync_width: clean(signalDataMap.get('002')?.value || 'Unknown'),
+					main_signal_sync_type: clean(signalDataMap.get('003')?.value || 'Unknown'),
+					main_signal_type: clean(signalDataMap.get('004')?.value || 'Unknown'),
+					main_signal_pixel_rate: clean(signalDataMap.get('005')?.value || 'Unknown'),
+					pip_signal_state: clean(signalDataMap.get('010')?.value || 'Unknown'),
+					pip_signal_frequency: clean(signalDataMap.get('011')?.value || 'Unknown'),
+					pip_signal_sync_width: clean(signalDataMap.get('012')?.value || 'Unknown'),
+					pip_signal_sync_type: clean(signalDataMap.get('013')?.value || 'Unknown'),
+					pip_signal_type: clean(signalDataMap.get('014')?.value || 'Unknown'),
+					pip_signal_pixel_rate: clean(signalDataMap.get('015')?.value || 'Unknown'),
 				}
 				this.setVariableValues(updates)
 			}
