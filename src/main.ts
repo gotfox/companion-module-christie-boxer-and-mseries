@@ -8,9 +8,8 @@ import { ChristieConnection } from './connection.js'
 import {
 	detectProjectorType,
 	parseResponse,
-	getLampVoltageCodes,
-	getLampStaticCodes,
-	parseLampInfo,
+	parseConcatenatedResponses,
+	formatHours,
 	type ProjectorType,
 } from './utils.js'
 
@@ -116,6 +115,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 	}
 
+	/**
+	 * Fast polling (every 3 seconds)
+	 * Polls frequently changing data: power, shutter, lens positions, test pattern, date/time
+	 */
 	async pollStatus(): Promise<void> {
 		if (!this.connection.isConnected()) {
 			return
@@ -126,9 +129,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const powerResponse = await this.connection.sendCommand('PWR?')
 			const powerParsed = parseResponse(powerResponse)
 			if (powerParsed) {
-				// Use description and clean up escaped parentheses like \(Lamp On\)
 				const powerStatus = powerParsed.description || powerParsed.value
-				// Remove escaped parentheses and content: "On \(Lamp On\)" -> "On"
 				const cleanedPower = powerStatus.replace(/\s*\\?\([^)]*\\?\)/g, '').trim()
 				this.setVariableValues({ power_status: cleanedPower })
 			}
@@ -137,22 +138,33 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const shutterResponse = await this.connection.sendCommand('SHU?')
 			const shutterParsed = parseResponse(shutterResponse)
 			if (shutterParsed) {
-				// Use description and clean up any escaped content
 				const shutterStatus = shutterParsed.description || shutterParsed.value
 				const cleanedShutter = shutterStatus.replace(/\s*\\?\([^)]*\\?\)/g, '').trim()
 				this.setVariableValues({ shutter_status: cleanedShutter })
 			}
 
-			// Poll signal status
-			const signalResponse = await this.connection.sendCommand('SST+SIGN!000?')
-			const signalParsed = parseResponse(signalResponse)
-			if (signalParsed) {
-				// Use value for signal status (contains the full signal info)
-				this.setVariableValues({ signal_status: signalParsed.value })
+			// Poll lens positions
+			await this.pollLensPositions()
+
+			// Poll test pattern
+			const testPatternResponse = await this.connection.sendCommand('ITP?')
+			const testPatternParsed = parseResponse(testPatternResponse)
+			if (testPatternParsed) {
+				this.setVariableValues({ test_pattern: testPatternParsed.value })
 			}
 
-			// Poll lamp voltage (fast polling)
-			await this.pollLampVoltage()
+			// Poll date and time
+			const dateResponse = await this.connection.sendCommand('TMD+DATE?')
+			const dateParsed = parseResponse(dateResponse)
+			if (dateParsed) {
+				this.setVariableValues({ current_date: dateParsed.value })
+			}
+
+			const timeResponse = await this.connection.sendCommand('TMD+TIME?')
+			const timeParsed = parseResponse(timeResponse)
+			if (timeParsed) {
+				this.setVariableValues({ current_time: timeParsed.value })
+			}
 
 			this.checkFeedbacks()
 		} catch (error) {
@@ -160,49 +172,43 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 	}
 
-	async pollLampVoltage(): Promise<void> {
-		const projectorType = this.getProjectorType()
-		if (projectorType === 'unknown') {
-			return
-		}
-
-		// Get voltage codes for this projector type
-		const voltageCodes = getLampVoltageCodes(projectorType)
-
-		// Poll each lamp's voltage
-		for (const [lampName, codes] of Object.entries(voltageCodes)) {
-			for (const code of codes) {
-				try {
-					const response = await this.connection.sendCommand(`SST+LAMP!${code.toString().padStart(3, '0')}?`)
-					const parsed = parseResponse(response)
-					if (parsed) {
-						// Map lamp name to number
-						let lampNumber = 1
-						if (projectorType === 'boxer') {
-							const boxerMapping: { [key: string]: number } = {
-								A1: 1,
-								A2: 2,
-								A3: 3,
-								B1: 4,
-								B2: 5,
-								B3: 6,
-							}
-							lampNumber = boxerMapping[lampName] || 1
-						} else {
-							lampNumber = parseInt(lampName, 10)
-						}
-
-						this.setVariableValues({
-							[`lamp_${lampNumber}_voltage`]: parsed.value,
-						})
-					}
-				} catch (_error) {
-					// Don't log errors for voltage polling - it's frequent and errors would be noisy
-				}
+	/**
+	 * Poll lens positions (focus, zoom, horizontal offset, vertical offset)
+	 */
+	async pollLensPositions(): Promise<void> {
+		try {
+			const focusResponse = await this.connection.sendCommand('FCS?')
+			const focusParsed = parseResponse(focusResponse)
+			if (focusParsed) {
+				this.setVariableValues({ lens_focus: focusParsed.value })
 			}
+
+			const zoomResponse = await this.connection.sendCommand('ZOM?')
+			const zoomParsed = parseResponse(zoomResponse)
+			if (zoomParsed) {
+				this.setVariableValues({ lens_zoom: zoomParsed.value })
+			}
+
+			const horizontalResponse = await this.connection.sendCommand('LHO?')
+			const horizontalParsed = parseResponse(horizontalResponse)
+			if (horizontalParsed) {
+				this.setVariableValues({ lens_horizontal_offset: horizontalParsed.value })
+			}
+
+			const verticalResponse = await this.connection.sendCommand('LVO?')
+			const verticalParsed = parseResponse(verticalResponse)
+			if (verticalParsed) {
+				this.setVariableValues({ lens_vertical_offset: verticalParsed.value })
+			}
+		} catch (error) {
+			this.log('debug', `Lens position polling error: ${error}`)
 		}
 	}
 
+	/**
+	 * Comprehensive polling (every 30 minutes)
+	 * Uses combined queries to get all lamp, signal, and system data
+	 */
 	async pollLampInfo(): Promise<void> {
 		if (!this.connection.isConnected()) {
 			return
@@ -211,67 +217,183 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		try {
 			const projectorType = this.getProjectorType()
 			if (projectorType === 'unknown') {
-				this.log('debug', 'Skipping lamp poll - projector type unknown')
+				this.log('debug', 'Skipping comprehensive poll - projector type unknown')
 				return
 			}
 
-			this.log('debug', 'Polling lamp static information (hours, serial, install date)')
+			this.log('debug', 'Polling comprehensive data (lamps, signals, system)')
 
-			// Get static lamp codes (hours, serial, install date, status)
-			const lampCodes = getLampStaticCodes(projectorType)
+			// Poll all lamp data with single query
+			await this.pollAllLampData(projectorType)
 
-			// Poll each lamp
-			for (const [lampName, codes] of Object.entries(lampCodes)) {
-				const responses: { [key: number]: any } = {}
+			// Poll all signal data with single query
+			await this.pollAllSignalData(projectorType)
 
-				// Query each code for this lamp
-				for (const code of codes) {
-					try {
-						const response = await this.connection.sendCommand(`SST+LAMP!${code.toString().padStart(3, '0')}?`)
-						const parsed = parseResponse(response)
-						if (parsed) {
-							responses[code] = parsed
-						}
-					} catch (error) {
-						this.log('warn', `Failed to query lamp ${lampName} code ${code}: ${error}`)
-					}
-				}
-
-				// Calculate base code and lamp number for this lamp
-				let lampNumber = 1
-				let baseCode = 0
-				if (projectorType === 'boxer') {
-					const boxerMapping: { [key: string]: { number: number; baseCode: number } } = {
-						A1: { number: 1, baseCode: 0 },
-						A2: { number: 2, baseCode: 40 },
-						A3: { number: 3, baseCode: 50 },
-						B1: { number: 4, baseCode: 60 },
-						B2: { number: 5, baseCode: 70 },
-						B3: { number: 6, baseCode: 80 },
-					}
-					lampNumber = boxerMapping[lampName]?.number || 1
-					baseCode = boxerMapping[lampName]?.baseCode || 0
-				} else {
-					lampNumber = parseInt(lampName, 10)
-					baseCode = lampNumber === 1 ? 0 : 30
-				}
-
-				// Parse lamp info with correct base code
-				const lampInfo = parseLampInfo(responses, projectorType, baseCode)
-
-				// Update static lamp info (state, hours, serial, install date, status)
-				this.setVariableValues({
-					[`lamp_${lampNumber}_state`]: lampInfo.state,
-					[`lamp_${lampNumber}_hours`]: lampInfo.hours,
-					[`lamp_${lampNumber}_status`]: lampInfo.status,
-					[`lamp_${lampNumber}_serial`]: lampInfo.serialNumber,
-					[`lamp_${lampNumber}_install_date`]: lampInfo.installDate || 'N/A',
-				})
-			}
+			// Poll all system data with single query
+			await this.pollAllSystemData(projectorType)
 
 			this.checkFeedbacks('lamp_hours_threshold')
 		} catch (error) {
-			this.log('warn', `Lamp polling error: ${error}`)
+			this.log('warn', `Comprehensive polling error: ${error}`)
+		}
+	}
+
+	/**
+	 * Poll all lamp data using single SST+LAMP? query
+	 */
+	async pollAllLampData(projectorType: ProjectorType): Promise<void> {
+		try {
+			const lampResponse = await this.connection.sendCommand('SST+LAMP?')
+			const lampDataMap = parseConcatenatedResponses(lampResponse)
+
+			if (projectorType === 'boxer') {
+				// Boxer has 6 lamps: A1-A3, B1-B3
+				const lampMapping = [
+					{ number: 1, name: 'A1', baseCode: 0 },
+					{ number: 2, name: 'A2', baseCode: 40 },
+					{ number: 3, name: 'A3', baseCode: 50 },
+					{ number: 4, name: 'B1', baseCode: 60 },
+					{ number: 5, name: 'B2', baseCode: 70 },
+					{ number: 6, name: 'B3', baseCode: 80 },
+				]
+
+				for (const lamp of lampMapping) {
+					const state = lampDataMap.get(`${lamp.baseCode}`)?.value || 'Unknown'
+					const hours = lampDataMap.get(`${lamp.baseCode + 1}`)?.value || 'Unknown'
+					const installDate = lampDataMap.get(`${lamp.baseCode + 3}`)?.value || 'N/A'
+					const serial = lampDataMap.get(`${lamp.baseCode + 4}`)?.value || 'Unknown'
+					const voltage = lampDataMap.get(`${lamp.baseCode + 6}`)?.value || 'Unknown'
+
+					this.setVariableValues({
+						[`lamp_${lamp.number}_state`]: state,
+						[`lamp_${lamp.number}_hours`]: formatHours(hours),
+						[`lamp_${lamp.number}_status`]: 'OK', // Boxer doesn't have separate status
+						[`lamp_${lamp.number}_voltage`]: voltage,
+						[`lamp_${lamp.number}_serial`]: serial,
+						[`lamp_${lamp.number}_install_date`]: installDate,
+					})
+				}
+			} else if (projectorType === 'mseries') {
+				// M-Series has 2 lamps
+				const lampMapping = [
+					{ number: 1, baseCode: 0 },
+					{ number: 2, baseCode: 30 },
+				]
+
+				for (const lamp of lampMapping) {
+					const state = lampDataMap.get(`${lamp.baseCode}`)?.value || 'Unknown'
+					const status = lampDataMap.get(`${lamp.baseCode + 1}`)?.value || 'Unknown'
+					const serial = lampDataMap.get(`${lamp.baseCode + 2}`)?.value || 'Unknown'
+					const installDate = lampDataMap.get(`${lamp.baseCode + 7}`)?.value || 'N/A'
+					const hours = lampDataMap.get(`${lamp.baseCode + 8}`)?.value || 'Unknown'
+
+					this.setVariableValues({
+						[`lamp_${lamp.number}_state`]: state,
+						[`lamp_${lamp.number}_hours`]: formatHours(hours),
+						[`lamp_${lamp.number}_status`]: status,
+						[`lamp_${lamp.number}_voltage`]: 'N/A', // M-Series doesn't expose voltage in SST+LAMP
+						[`lamp_${lamp.number}_serial`]: serial,
+						[`lamp_${lamp.number}_install_date`]: installDate,
+					})
+				}
+			}
+		} catch (error) {
+			this.log('warn', `Lamp data polling error: ${error}`)
+		}
+	}
+
+	/**
+	 * Poll all signal data using single SST+SIGN? query
+	 */
+	async pollAllSignalData(projectorType: ProjectorType): Promise<void> {
+		try {
+			const signalResponse = await this.connection.sendCommand('SST+SIGN?')
+			const signalDataMap = parseConcatenatedResponses(signalResponse)
+
+			if (projectorType === 'boxer') {
+				// Boxer signal inputs
+				const signalMapping = [
+					{ code: '000', variable: 'signal_hdbaset' },
+					{ code: '001', variable: 'signal_card0_input1' },
+					{ code: '002', variable: 'signal_card0_input2' },
+					{ code: '003', variable: 'signal_card0_input3' },
+					{ code: '004', variable: 'signal_card0_input4' },
+					{ code: '011', variable: 'signal_card1_input1' },
+					{ code: '012', variable: 'signal_card1_input2' },
+					{ code: '021', variable: 'signal_card2_input1' },
+					{ code: '022', variable: 'signal_card2_input2' },
+					{ code: '031', variable: 'signal_card3_input1' },
+					{ code: '032', variable: 'signal_card3_input2' },
+					{ code: '041', variable: 'signal_card4_input1' },
+					{ code: '042', variable: 'signal_card4_input2' },
+					{ code: '050', variable: 'output_frequency' },
+					{ code: '051', variable: 'frame_lock' },
+					{ code: '053', variable: 'tsic_connection' },
+				]
+
+				const updates: Record<string, string> = {}
+				for (const signal of signalMapping) {
+					const value = signalDataMap.get(signal.code)?.value || 'Unknown'
+					updates[signal.variable] = value
+				}
+				this.setVariableValues(updates)
+			} else if (projectorType === 'mseries') {
+				// M-Series main and PIP signal
+				const updates: Record<string, string> = {
+					main_signal_state: signalDataMap.get('000')?.value || 'Unknown',
+					main_signal_frequency: signalDataMap.get('001')?.value || 'Unknown',
+					main_signal_sync_width: signalDataMap.get('002')?.value || 'Unknown',
+					main_signal_sync_type: signalDataMap.get('003')?.value || 'Unknown',
+					main_signal_type: signalDataMap.get('004')?.value || 'Unknown',
+					main_signal_pixel_rate: signalDataMap.get('005')?.value || 'Unknown',
+					pip_signal_state: signalDataMap.get('010')?.value || 'Unknown',
+					pip_signal_frequency: signalDataMap.get('011')?.value || 'Unknown',
+					pip_signal_sync_width: signalDataMap.get('012')?.value || 'Unknown',
+					pip_signal_sync_type: signalDataMap.get('013')?.value || 'Unknown',
+					pip_signal_type: signalDataMap.get('014')?.value || 'Unknown',
+					pip_signal_pixel_rate: signalDataMap.get('015')?.value || 'Unknown',
+				}
+				this.setVariableValues(updates)
+			}
+		} catch (error) {
+			this.log('warn', `Signal data polling error: ${error}`)
+		}
+	}
+
+	/**
+	 * Poll all system data using single SST+SYST? query
+	 */
+	async pollAllSystemData(projectorType: ProjectorType): Promise<void> {
+		try {
+			const systemResponse = await this.connection.sendCommand('SST+SYST?')
+			const systemDataMap = parseConcatenatedResponses(systemResponse)
+
+			if (projectorType === 'boxer') {
+				const projectorHours = systemDataMap.get('000')?.value || 'Unknown'
+				this.setVariableValues({
+					projector_hours: formatHours(projectorHours),
+					pitch_roll: systemDataMap.get('001')?.value || 'Unknown',
+					lens_motor_horizontal: systemDataMap.get('005')?.value || 'Unknown',
+					lens_motor_vertical: systemDataMap.get('006')?.value || 'Unknown',
+					lens_motor_zoom: systemDataMap.get('007')?.value || 'Unknown',
+					lens_motor_focus: systemDataMap.get('008')?.value || 'Unknown',
+					power_supply_voltage: systemDataMap.get('027')?.value || 'Unknown',
+				})
+			} else if (projectorType === 'mseries') {
+				const projectorHours = systemDataMap.get('000')?.value || 'Unknown'
+				this.setVariableValues({
+					projector_hours: formatHours(projectorHours),
+					lens_type: systemDataMap.get('001')?.value || 'Unknown',
+					output_frequency: systemDataMap.get('003')?.value || 'Unknown',
+					frame_lock: systemDataMap.get('004')?.value || 'Unknown',
+					slot_1: systemDataMap.get('005')?.value || 'Unknown',
+					slot_2: systemDataMap.get('006')?.value || 'Unknown',
+					slot_3: systemDataMap.get('007')?.value || 'Unknown',
+					slot_4: systemDataMap.get('008')?.value || 'Unknown',
+				})
+			}
+		} catch (error) {
+			this.log('warn', `System data polling error: ${error}`)
 		}
 	}
 

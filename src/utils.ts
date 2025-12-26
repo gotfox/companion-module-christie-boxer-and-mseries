@@ -96,6 +96,79 @@ export function parseResponse(response: string): ParsedResponse | null {
 }
 
 /**
+ * Split a concatenated response string into individual responses
+ * Example: "(SST+LAMP!000 000 "On" "Lamp A1")(SST+LAMP!001 000 "314:41" "Hours")"
+ * Returns: ["(SST+LAMP!000 000 "On" "Lamp A1")", "(SST+LAMP!001 000 "314:41" "Hours")"]
+ */
+export function splitConcatenatedResponses(concatenated: string): string[] {
+	const responses: string[] = []
+	let depth = 0
+	let currentResponse = ''
+	let inQuotes = false
+	let escapeNext = false
+
+	for (let i = 0; i < concatenated.length; i++) {
+		const char = concatenated[i]
+
+		if (escapeNext) {
+			currentResponse += char
+			escapeNext = false
+			continue
+		}
+
+		if (char === '\\') {
+			currentResponse += char
+			escapeNext = true
+			continue
+		}
+
+		if (char === '"') {
+			inQuotes = !inQuotes
+			currentResponse += char
+			continue
+		}
+
+		if (!inQuotes) {
+			if (char === '(') {
+				depth++
+				currentResponse += char
+			} else if (char === ')') {
+				depth--
+				currentResponse += char
+				if (depth === 0 && currentResponse.trim()) {
+					responses.push(currentResponse.trim())
+					currentResponse = ''
+				}
+			} else {
+				currentResponse += char
+			}
+		} else {
+			currentResponse += char
+		}
+	}
+
+	return responses
+}
+
+/**
+ * Parse concatenated responses into a map of subcode -> ParsedResponse
+ * Used for SST commands that return multiple responses in one string
+ */
+export function parseConcatenatedResponses(concatenated: string): Map<string, ParsedResponse> {
+	const responseMap = new Map<string, ParsedResponse>()
+	const individualResponses = splitConcatenatedResponses(concatenated)
+
+	for (const responseStr of individualResponses) {
+		const parsed = parseResponse(responseStr)
+		if (parsed && parsed.subcode) {
+			responseMap.set(parsed.subcode, parsed)
+		}
+	}
+
+	return responseMap
+}
+
+/**
  * Format hours from "314:41 \\(h:m\\)" to "314:41"
  */
 export function formatHours(hoursString: string): string {
