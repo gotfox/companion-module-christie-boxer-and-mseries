@@ -50,6 +50,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		} else {
 			this.detectedProjectorType = this.config.projectorType
 			this.log('info', `Using configured projector type: ${this.detectedProjectorType}`)
+			// Update variable definitions based on manually selected type
+			this.updateVariableDefinitions(this.detectedProjectorType)
 		}
 
 		// Start polling
@@ -64,6 +66,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 			if (this.detectedProjectorType !== 'unknown') {
 				this.log('info', `Detected projector type: ${this.detectedProjectorType}`)
+				// Update variable definitions based on detected type
+				this.updateVariableDefinitions(this.detectedProjectorType)
 				this.setVariableValues({
 					projector_type: this.detectedProjectorType === 'boxer' ? 'Boxer 4K' : 'M-Series',
 				})
@@ -279,10 +283,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
 		const reconnect = config.host !== this.config.host || config.port !== this.config.port
+		const typeChanged = config.projectorType !== this.config.projectorType
 
 		this.config = config
 
 		if (reconnect) {
+			this.stopPolling()
+			await this.initConnection()
+		} else if (typeChanged) {
+			// Projector type changed, update variables and reconnect
 			this.stopPolling()
 			await this.initConnection()
 		} else {
@@ -303,8 +312,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		UpdateFeedbacks(this)
 	}
 
-	updateVariableDefinitions(): void {
-		UpdateVariableDefinitions(this)
+	updateVariableDefinitions(projectorType?: ProjectorType): void {
+		UpdateVariableDefinitions(this, projectorType)
 	}
 
 	getProjectorType(): ProjectorType {
