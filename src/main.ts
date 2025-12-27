@@ -143,6 +143,13 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.setVariableValues({ shutter_status: cleanedShutter })
 			}
 
+			// Poll current input
+			const inputResponse = await this.connection.sendCommand('SIN?')
+			const inputParsed = parseResponse(inputResponse)
+			if (inputParsed) {
+				this.setVariableValues({ current_input: inputParsed.value })
+			}
+
 			// Poll lens positions
 			await this.pollLensPositions()
 
