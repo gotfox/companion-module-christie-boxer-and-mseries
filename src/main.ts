@@ -2,8 +2,9 @@ import { InstanceBase, runEntrypoint, InstanceStatus, SomeCompanionConfigField }
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { UpdateVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
-import { UpdateActions } from './actions.js'
+import { UpdateActions, stopAllLensMovements } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
+import { UpdatePresets } from './presets.js'
 import { ChristieConnection } from './connection.js'
 import {
 	detectProjectorType,
@@ -33,6 +34,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.updateActions()
 		this.updateFeedbacks()
 		this.updateVariableDefinitions()
+		this.updatePresets()
 
 		await this.initConnection()
 	}
@@ -415,6 +417,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	async destroy(): Promise<void> {
 		this.log('debug', 'destroy')
 		this.stopPolling()
+		stopAllLensMovements()
 		this.connection.disconnect()
 	}
 
@@ -451,6 +454,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	updateVariableDefinitions(projectorType?: ProjectorType): void {
 		UpdateVariableDefinitions(this, projectorType)
+	}
+
+	updatePresets(): void {
+		UpdatePresets(this)
 	}
 
 	getProjectorType(): ProjectorType {

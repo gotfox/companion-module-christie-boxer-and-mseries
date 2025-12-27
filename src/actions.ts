@@ -1,56 +1,55 @@
-import type { CompanionActionDefinitions } from '@companion-module/base'
+import type { CompanionActionDefinitions, CompanionActionEvent } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
+
+// Track active lens movements
+const activeLensMovements = new Map<string, NodeJS.Timeout>()
 
 export function UpdateActions(self: ModuleInstance): void {
 	const actions: CompanionActionDefinitions = {
-		power_on: {
-			name: 'Power On',
-			options: [],
-			callback: async () => {
+		power: {
+			name: 'Power',
+			options: [
+				{
+					id: 'state',
+					type: 'dropdown',
+					label: 'State',
+					default: 1,
+					choices: [
+						{ id: 0, label: 'Off' },
+						{ id: 1, label: 'On' },
+					],
+				},
+			],
+			callback: async (event) => {
 				try {
-					await self.connection.sendCommand('PWR 1')
-					self.log('info', 'Power on command sent')
+					await self.connection.sendCommand(`PWR ${event.options.state}`)
+					self.log('info', `Power ${event.options.state === 1 ? 'on' : 'off'} command sent`)
 				} catch (error) {
-					self.log('error', `Power on failed: ${error}`)
+					self.log('error', `Power command failed: ${error}`)
 				}
 			},
 		},
 
-		power_off: {
-			name: 'Power Off',
-			options: [],
-			callback: async () => {
+		shutter: {
+			name: 'Shutter',
+			options: [
+				{
+					id: 'state',
+					type: 'dropdown',
+					label: 'State',
+					default: 0,
+					choices: [
+						{ id: 0, label: 'Open' },
+						{ id: 1, label: 'Close' },
+					],
+				},
+			],
+			callback: async (event) => {
 				try {
-					await self.connection.sendCommand('PWR 0')
-					self.log('info', 'Power off command sent')
+					await self.connection.sendCommand(`SHU ${event.options.state}`)
+					self.log('info', `Shutter ${event.options.state === 0 ? 'open' : 'close'} command sent`)
 				} catch (error) {
-					self.log('error', `Power off failed: ${error}`)
-				}
-			},
-		},
-
-		shutter_open: {
-			name: 'Shutter Open',
-			options: [],
-			callback: async () => {
-				try {
-					await self.connection.sendCommand('SHU 0')
-					self.log('info', 'Shutter open command sent')
-				} catch (error) {
-					self.log('error', `Shutter open failed: ${error}`)
-				}
-			},
-		},
-
-		shutter_close: {
-			name: 'Shutter Close',
-			options: [],
-			callback: async () => {
-				try {
-					await self.connection.sendCommand('SHU 1')
-					self.log('info', 'Shutter close command sent')
-				} catch (error) {
-					self.log('error', `Shutter close failed: ${error}`)
+					self.log('error', `Shutter command failed: ${error}`)
 				}
 			},
 		},
@@ -101,7 +100,7 @@ export function UpdateActions(self: ModuleInstance): void {
 		},
 
 		lens_focus: {
-			name: 'Lens Focus',
+			name: 'Lens Focus - Set Position',
 			options: [
 				{
 					id: 'position',
@@ -122,8 +121,74 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		lens_focus_increase: {
+			name: 'Lens Focus - Increase (Near)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'focus', 'increase', speed, action)
+			},
+		},
+
+		lens_focus_decrease: {
+			name: 'Lens Focus - Decrease (Far)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'focus', 'decrease', speed, action)
+			},
+		},
+
 		lens_zoom: {
-			name: 'Lens Zoom',
+			name: 'Lens Zoom - Set Position',
 			options: [
 				{
 					id: 'position',
@@ -144,8 +209,74 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		lens_zoom_increase: {
+			name: 'Lens Zoom - Increase (In)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'zoom', 'increase', speed, action)
+			},
+		},
+
+		lens_zoom_decrease: {
+			name: 'Lens Zoom - Decrease (Out)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'zoom', 'decrease', speed, action)
+			},
+		},
+
 		lens_horizontal_offset: {
-			name: 'Lens Horizontal Offset',
+			name: 'Lens Horizontal Offset - Set Position',
 			options: [
 				{
 					id: 'position',
@@ -166,8 +297,74 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		lens_horizontal_offset_increase: {
+			name: 'Lens Horizontal Offset - Increase (Right)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'horizontal', 'increase', speed, action)
+			},
+		},
+
+		lens_horizontal_offset_decrease: {
+			name: 'Lens Horizontal Offset - Decrease (Left)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'horizontal', 'decrease', speed, action)
+			},
+		},
+
 		lens_vertical_offset: {
-			name: 'Lens Vertical Offset',
+			name: 'Lens Vertical Offset - Set Position',
 			options: [
 				{
 					id: 'position',
@@ -188,16 +385,103 @@ export function UpdateActions(self: ModuleInstance): void {
 			},
 		},
 
+		lens_vertical_offset_increase: {
+			name: 'Lens Vertical Offset - Increase (Up)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'vertical', 'increase', speed, action)
+			},
+		},
+
+		lens_vertical_offset_decrease: {
+			name: 'Lens Vertical Offset - Decrease (Down)',
+			options: [
+				{
+					id: 'speed',
+					type: 'dropdown',
+					label: 'Speed',
+					default: 50,
+					choices: [
+						{ id: 25, label: 'Slow' },
+						{ id: 50, label: 'Medium' },
+						{ id: 100, label: 'Fast' },
+					],
+				},
+				{
+					id: 'action',
+					type: 'dropdown',
+					label: 'Action',
+					default: 'toggle',
+					choices: [
+						{ id: 'start', label: 'Start Movement' },
+						{ id: 'stop', label: 'Stop Movement' },
+						{ id: 'toggle', label: 'Toggle (Start/Stop)' },
+					],
+				},
+			],
+			callback: async (event: CompanionActionEvent) => {
+				const speed = Number(event.options.speed)
+				const action = String(event.options.action)
+				handleLensMovement(self, 'vertical', 'decrease', speed, action)
+			},
+		},
+
 		input_select: {
 			name: 'Select Input',
 			options: [
 				{
 					id: 'input',
-					type: 'number',
-					label: 'Input Number',
+					type: 'dropdown',
+					label: 'Input',
 					default: 0,
-					min: 0,
-					max: 20,
+					choices: [
+						{ id: 0, label: 'Input 0' },
+						{ id: 1, label: 'Input 1' },
+						{ id: 2, label: 'Input 2' },
+						{ id: 3, label: 'Input 3' },
+						{ id: 4, label: 'Input 4' },
+						{ id: 5, label: 'Input 5' },
+						{ id: 6, label: 'Input 6' },
+						{ id: 7, label: 'Input 7' },
+						{ id: 8, label: 'Input 8' },
+						{ id: 9, label: 'Input 9' },
+						{ id: 10, label: 'Input 10' },
+						{ id: 11, label: 'Input 11' },
+						{ id: 12, label: 'Input 12' },
+						{ id: 13, label: 'Input 13' },
+						{ id: 14, label: 'Input 14' },
+						{ id: 15, label: 'Input 15' },
+						{ id: 16, label: 'Input 16' },
+						{ id: 17, label: 'Input 17' },
+						{ id: 18, label: 'Input 18' },
+						{ id: 19, label: 'Input 19' },
+						{ id: 20, label: 'Input 20' },
+					],
 				},
 			],
 			callback: async (event) => {
@@ -234,4 +518,122 @@ export function UpdateActions(self: ModuleInstance): void {
 	}
 
 	self.setActionDefinitions(actions)
+}
+
+/**
+ * Handle continuous lens movement
+ * @param action - 'start', 'stop', or 'toggle'
+ */
+function handleLensMovement(
+	self: ModuleInstance,
+	axis: 'focus' | 'zoom' | 'horizontal' | 'vertical',
+	direction: 'increase' | 'decrease',
+	speed: number,
+	action: string,
+): void {
+	const key = `${axis}_${direction}`
+	const isActive = activeLensMovements.has(key)
+
+	// Determine what to do based on action parameter
+	let shouldStart = false
+	if (action === 'start') {
+		shouldStart = true
+	} else if (action === 'stop') {
+		shouldStart = false
+	} else {
+		// toggle
+		shouldStart = !isActive
+	}
+
+	// Stop movement if requested or if toggling to stop
+	if (!shouldStart) {
+		const timer = activeLensMovements.get(key)
+		if (timer) {
+			clearInterval(timer)
+			activeLensMovements.delete(key)
+			self.log('debug', `Lens ${axis} ${direction} stopped`)
+		}
+		return
+	}
+
+	// Don't start if already active (prevent multiple timers)
+	if (isActive) {
+		self.log('debug', `Lens ${axis} ${direction} already active`)
+		return
+	}
+
+	// Get command prefix and limits based on axis
+	let command: string
+	let min: number
+	let max: number
+	let variableId: string
+
+	switch (axis) {
+		case 'focus':
+			command = 'FCS'
+			min = -5000
+			max = 5000
+			variableId = 'lens_focus'
+			break
+		case 'zoom':
+			command = 'ZOM'
+			min = -5000
+			max = 5000
+			variableId = 'lens_zoom'
+			break
+		case 'horizontal':
+			command = 'LHO'
+			min = -1600
+			max = 1600
+			variableId = 'lens_horizontal_offset'
+			break
+		case 'vertical':
+			command = 'LVO'
+			min = -1600
+			max = 1600
+			variableId = 'lens_vertical_offset'
+			break
+	}
+
+	// Calculate step size and interval based on speed
+	const step = direction === 'increase' ? speed : -speed
+	const interval = 100 // Send command every 100ms
+
+	// Start continuous movement
+	const timer = setInterval(() => {
+		// Get current position from variable
+		const currentPosStr = self.getVariableValue(variableId) as string
+		const currentPos = parseInt(currentPosStr) || 0
+
+		// Calculate new position
+		const newPos = Math.max(min, Math.min(max, currentPos + step))
+
+		// Send command
+		void self.connection.sendCommand(`${command} ${newPos}`).catch((error) => {
+			self.log('warn', `Lens ${axis} movement error: ${error}`)
+		})
+
+		// Stop if we've reached the limit
+		if (newPos === min || newPos === max) {
+			const timer = activeLensMovements.get(key)
+			if (timer) {
+				clearInterval(timer)
+				activeLensMovements.delete(key)
+				self.log('debug', `Lens ${axis} reached limit`)
+			}
+		}
+	}, interval)
+
+	activeLensMovements.set(key, timer)
+	self.log('debug', `Lens ${axis} ${direction} started at speed ${speed}`)
+}
+
+/**
+ * Stop all active lens movements
+ */
+export function stopAllLensMovements(): void {
+	for (const timer of activeLensMovements.values()) {
+		clearInterval(timer)
+	}
+	activeLensMovements.clear()
 }
