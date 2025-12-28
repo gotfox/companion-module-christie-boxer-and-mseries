@@ -51,8 +51,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		} else {
 			this.detectedProjectorType = this.config.projectorType
 			this.log('info', `Using configured projector type: ${this.detectedProjectorType}`)
-			// Update variable definitions based on manually selected type
+			// Update variable definitions and actions based on manually selected type
 			this.updateVariableDefinitions(this.detectedProjectorType)
+			this.updateActions(this.detectedProjectorType)
 		}
 
 		// Start polling
@@ -67,8 +68,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 			if (this.detectedProjectorType !== 'unknown') {
 				this.log('info', `Detected projector type: ${this.detectedProjectorType}`)
-				// Update variable definitions based on detected type
+				// Update variable definitions and actions based on detected type
 				this.updateVariableDefinitions(this.detectedProjectorType)
+				this.updateActions(this.detectedProjectorType)
 				this.setVariableValues({
 					projector_type: this.detectedProjectorType === 'boxer' ? 'Boxer 4K' : 'M-Series',
 				})
@@ -444,8 +446,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		return GetConfigFields()
 	}
 
-	updateActions(): void {
-		UpdateActions(this)
+	updateActions(projectorType?: ProjectorType): void {
+		UpdateActions(this, projectorType || this.getProjectorType())
 	}
 
 	updateFeedbacks(): void {
