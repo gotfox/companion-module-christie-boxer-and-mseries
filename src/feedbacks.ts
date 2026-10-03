@@ -146,51 +146,6 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				return parseInt(hoursMatch[1], 10) >= Number(feedback.options.threshold)
 			},
 		},
-
-		power_on: {
-			name: 'Power Is On',
-			type: 'boolean',
-			defaultStyle: {
-				bgcolor: combineRgb(0, 255, 0),
-				color: combineRgb(0, 0, 0),
-			},
-			options: [],
-			callback: () => getPowerStatus(self) === 'on',
-		},
-
-		power_off: {
-			name: 'Power Is Off',
-			description: 'Active while the projector is in standby',
-			type: 'boolean',
-			defaultStyle: {
-				bgcolor: combineRgb(64, 64, 64),
-				color: combineRgb(255, 255, 255),
-			},
-			options: [],
-			callback: () => getPowerStatus(self).startsWith('standby'),
-		},
-
-		shutter_open: {
-			name: 'Shutter Is Open',
-			type: 'boolean',
-			defaultStyle: {
-				bgcolor: combineRgb(0, 200, 0),
-				color: combineRgb(255, 255, 255),
-			},
-			options: [],
-			callback: () => getShutterStatus(self) === 'open',
-		},
-
-		shutter_closed: {
-			name: 'Shutter Is Closed',
-			type: 'boolean',
-			defaultStyle: {
-				bgcolor: combineRgb(200, 0, 0),
-				color: combineRgb(255, 255, 255),
-			},
-			options: [],
-			callback: () => getShutterStatus(self) === 'closed',
-		},
 	}
 
 	self.setFeedbackDefinitions(feedbacks)

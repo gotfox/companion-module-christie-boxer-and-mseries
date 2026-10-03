@@ -94,21 +94,13 @@ This module provides complete control and monitoring of Christie Digital profess
 
 ### Power State Feedbacks
 
-- **Power State**: Match specific power state (Off/On/Cooling/Warming)
+- **Power State**: Match specific power state (Standby/On/Cooling Down/Warming Up)
   - Default: Green background when on
-- **Power Is On**: Simple on/off indicator
-  - Default: Green background
-- **Power Is Off**: Simple on/off indicator
-  - Default: Dark grey background
 
 ### Shutter State Feedbacks
 
 - **Shutter State**: Match specific shutter state (Open/Closed)
   - Default: Orange background
-- **Shutter Is Open**: Simple open/closed indicator
-  - Default: Green background
-- **Shutter Is Closed**: Simple open/closed indicator
-  - Default: Red background
 
 ### Signal Feedback
 

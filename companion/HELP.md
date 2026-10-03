@@ -71,15 +71,11 @@ Fine-tune lens position:
 
 ### Power Feedbacks
 
-- **Power State**: Match specific state (Off/On/Cooling/Warming)
-- **Power Is On**: Simple on indicator
-- **Power Is Off**: Simple off indicator
+- **Power State**: Match specific state (Standby/On/Cooling Down/Warming Up)
 
 ### Shutter Feedbacks
 
 - **Shutter State**: Match specific state (Open/Closed)
-- **Shutter Is Open**: Simple open indicator
-- **Shutter Is Closed**: Simple closed indicator
 
 ### Signal Feedback
 

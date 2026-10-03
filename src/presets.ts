@@ -61,7 +61,8 @@ function toggleStatePreset(
 	bgcolor: number,
 	actionId: 'power' | 'shutter',
 	state: number,
-	feedbackId: string,
+	feedbackId: 'power_state' | 'shutter_state',
+	feedbackState: string,
 	activeBgcolor: number,
 ): LayeredPreset {
 	return {
@@ -72,7 +73,7 @@ function toggleStatePreset(
 		feedbacks: [
 			{
 				feedbackId,
-				options: {},
+				options: { state: feedbackState },
 				styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: activeBgcolor }],
 			},
 		],
@@ -87,7 +88,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 			combineRgb(0, 60, 0),
 			'power',
 			1,
-			'power_on',
+			'power_state',
+			'on',
 			combineRgb(0, 170, 0),
 		),
 		power_off: toggleStatePreset(
@@ -96,7 +98,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 			combineRgb(60, 60, 60),
 			'power',
 			0,
-			'power_off',
+			'power_state',
+			'standby',
 			combineRgb(150, 0, 0),
 		),
 		shutter_open: toggleStatePreset(
@@ -105,7 +108,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 			combineRgb(0, 60, 0),
 			'shutter',
 			0,
-			'shutter_open',
+			'shutter_state',
+			'open',
 			combineRgb(0, 170, 0),
 		),
 		shutter_close: toggleStatePreset(
@@ -114,7 +118,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 			combineRgb(60, 0, 0),
 			'shutter',
 			1,
-			'shutter_closed',
+			'shutter_state',
+			'closed',
 			combineRgb(200, 0, 0),
 		),
 
