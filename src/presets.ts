@@ -2,30 +2,49 @@ import {
 	combineRgb,
 	type CompanionPresetDefinitions,
 	type CompanionPresetSection,
-	type CompanionSimplePresetDefinition,
+	type CompanionLayeredButtonPresetDefinition,
 } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import type { ModuleTypes } from './types.js'
 
-type SimplePreset = CompanionSimplePresetDefinition<ModuleTypes>
+type LayeredPreset = CompanionLayeredButtonPresetDefinition<ModuleTypes>
 
 const WHITE = combineRgb(255, 255, 255)
+
+/**
+ * Button face: a full-size background box plus a centred text layer.
+ * The text is set to font size 100 with shrink-to-fit so it never gets truncated.
+ */
+function buttonFace(text: string, bgcolor: number): LayeredPreset['elements'] {
+	return [
+		{ id: 'bg', type: 'box', name: 'Background', x: 0, y: 0, width: 100, height: 100, color: bgcolor },
+		{
+			id: 'label',
+			type: 'text',
+			name: 'Label',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			text,
+			fontsize: 100,
+			fontsizeAllowShrink: true,
+			color: WHITE,
+			halign: 'center',
+			valign: 'center',
+		},
+	]
+}
 
 /**
  * Button that moves the lens for as long as it is held:
  * movement starts on press and stops on release
  */
-function lensHoldPreset(
-	name: string,
-	text: string,
-	size: '18' | '44',
-	bgcolor: number,
-	actionId: string,
-): SimplePreset {
+function lensHoldPreset(name: string, text: string, bgcolor: number, actionId: string): LayeredPreset {
 	return {
-		type: 'simple',
+		type: 'layered',
 		name,
-		style: { text, size, color: WHITE, bgcolor },
+		elements: buttonFace(text, bgcolor),
 		steps: [
 			{
 				down: [{ actionId, options: { speed: 50, action: 'start' } }],
@@ -44,17 +63,17 @@ function toggleStatePreset(
 	state: number,
 	feedbackId: string,
 	activeBgcolor: number,
-): SimplePreset {
+): LayeredPreset {
 	return {
-		type: 'simple',
+		type: 'layered',
 		name,
-		style: { text, size: '18', color: WHITE, bgcolor },
+		elements: buttonFace(text, bgcolor),
 		steps: [{ down: [{ actionId, options: { state } }], up: [] }],
 		feedbacks: [
 			{
 				feedbackId,
 				options: {},
-				style: { bgcolor: activeBgcolor, color: WHITE },
+				styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: activeBgcolor }],
 			},
 		],
 	}
@@ -99,43 +118,33 @@ export function UpdatePresets(self: ModuleInstance): void {
 			combineRgb(200, 0, 0),
 		),
 
-		lens_focus_near: lensHoldPreset(
-			'Focus + (Near)',
-			'FOCUS\nNEAR',
-			'18',
-			combineRgb(0, 0, 136),
-			'lens_focus_increase',
-		),
-		lens_focus_far: lensHoldPreset('Focus - (Far)', 'FOCUS\nFAR', '18', combineRgb(0, 0, 136), 'lens_focus_decrease'),
+		lens_focus_near: lensHoldPreset('Focus + (Near)', 'FOCUS\nNEAR', combineRgb(0, 0, 136), 'lens_focus_increase'),
+		lens_focus_far: lensHoldPreset('Focus - (Far)', 'FOCUS\nFAR', combineRgb(0, 0, 136), 'lens_focus_decrease'),
 
-		lens_zoom_in: lensHoldPreset('Zoom + (In)', 'ZOOM\nIN', '18', combineRgb(136, 0, 136), 'lens_zoom_increase'),
-		lens_zoom_out: lensHoldPreset('Zoom - (Out)', 'ZOOM\nOUT', '18', combineRgb(136, 0, 136), 'lens_zoom_decrease'),
+		lens_zoom_in: lensHoldPreset('Zoom + (In)', 'ZOOM\nIN', combineRgb(136, 0, 136), 'lens_zoom_increase'),
+		lens_zoom_out: lensHoldPreset('Zoom - (Out)', 'ZOOM\nOUT', combineRgb(136, 0, 136), 'lens_zoom_decrease'),
 
 		lens_vertical_up: lensHoldPreset(
 			'Vertical Offset + (Up)',
 			'▲',
-			'44',
 			combineRgb(0, 120, 120),
 			'lens_vertical_offset_increase',
 		),
 		lens_vertical_down: lensHoldPreset(
 			'Vertical Offset - (Down)',
 			'▼',
-			'44',
 			combineRgb(0, 120, 120),
 			'lens_vertical_offset_decrease',
 		),
 		lens_horizontal_right: lensHoldPreset(
 			'Horizontal Offset + (Right)',
 			'▶',
-			'44',
 			combineRgb(0, 120, 120),
 			'lens_horizontal_offset_increase',
 		),
 		lens_horizontal_left: lensHoldPreset(
 			'Horizontal Offset - (Left)',
 			'◀',
-			'44',
 			combineRgb(0, 120, 120),
 			'lens_horizontal_offset_decrease',
 		),

@@ -205,7 +205,7 @@ src/
 
 ### Companion Module API
 
-- Uses `@companion-module/base` 2.x (Companion module API v2): default-exported `ModuleInstance`, `UpgradeScripts` re-exported from `main.ts`, presets of `type: 'simple'` organised into sections via `setPresetDefinitions(structure, presets)`, variable definitions as an object keyed by id, and `checkAllFeedbacks()` instead of argument-less `checkFeedbacks()`.
+- Uses `@companion-module/base` 2.1.x (Companion module API v2; Companion 5.0.7 rejects 2.2.0): default-exported `ModuleInstance`, `UpgradeScripts` re-exported from `main.ts`, presets of `type: 'layered'` (background box + text layer at font size 100 with shrink-to-fit) organised into sections via `setPresetDefinitions(structure, presets)`, variable definitions as an object keyed by id, and `checkAllFeedbacks()` instead of argument-less `checkFeedbacks()`.
 - Config is a `type` alias (not an interface) so it satisfies the `JsonObject` constraint.
 - Lens +/- buttons are presets with `start` on press and `stop` on release (`lens_*_increase` / `lens_*_decrease` actions).
 
