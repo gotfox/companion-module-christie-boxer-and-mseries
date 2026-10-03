@@ -27,13 +27,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@companion-module/base@npm:~2.2.0":
-  version: 2.2.0
-  resolution: "@companion-module/base@npm:2.2.0"
+"@companion-module/base@npm:2.0.4":
+  version: 2.0.4
+  resolution: "@companion-module/base@npm:2.0.4"
   dependencies:
-    colord: "npm:^2.9.4"
-    zod: "npm:^4.4.3"
-  checksum: 10c0/a51591c6d0a7e4aa16eedadd8d8727b769c0c4f4b60381600859a1aba20ad703f95ea4b8e3d8803e538b3e12ed088fe1e2e1d36c639d78237304f322113835cc
+    colord: "npm:^2.9.3"
+    tslib: "npm:^2.8.1"
+  checksum: 10c0/f7499efe73b9e409dec553d86a95c9832caafbbc4a2b40f053736f8a34b126ef94aeb8fee38456550d8696a9251fdc56aaddcea3f07ee5125db8befc7fba1def
   languageName: node
   linkType: hard
 
@@ -724,7 +724,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"colord@npm:^2.9.4":
+"colord@npm:^2.9.3":
   version: 2.10.0
   resolution: "colord@npm:2.10.0"
   checksum: 10c0/2f5d1d1759124f593deca17bbbab8a88bdc3ab68bbcc88db76c1192d9a5d575db202badde044bf61789561fa0ed7a9eb895382becad1af27ec65934c216e9e04
@@ -749,7 +749,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "companion-module-christie-boxer-and-mseries@workspace:."
   dependencies:
-    "@companion-module/base": "npm:~2.2.0"
+    "@companion-module/base": "npm:2.0.4"
     "@companion-module/tools": "npm:^3.1.1"
     "@types/node": "npm:^22.18.13"
     eslint: "npm:^10.2.0"
@@ -1903,6 +1903,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tslib@npm:^2.8.1":
+  version: 2.8.1
+  resolution: "tslib@npm:2.8.1"
+  checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
+  languageName: node
+  linkType: hard
+
 "type-check@npm:^0.4.0, type-check@npm:~0.4.0":
   version: 0.4.0
   resolution: "type-check@npm:0.4.0"
@@ -2026,13 +2033,6 @@ __metadata:
   version: 1.2.2
   resolution: "yocto-queue@npm:1.2.2"
   checksum: 10c0/36d4793e9cf7060f9da543baf67c55e354f4862c8d3d34de1a1b1d7c382d44171315cc54abf84d8900b8113d742b830108a1434f4898fb244f9b7e8426d4b8f5
-  languageName: node
-  linkType: hard
-
-"zod@npm:^4.4.3":
-  version: 4.6.5
-  resolution: "zod@npm:4.6.5"
-  checksum: 10c0/32eb6c5e98becbe045675b2141c3611451c16ba567f9779231d79af41c4d651ca1c22f154aef7e6c6e77b929f23e43f1154ca05b82e119e922353725d6776af5
   languageName: node
   linkType: hard
 
