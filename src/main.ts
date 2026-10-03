@@ -54,6 +54,7 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 			// Update variable definitions and actions based on manually selected type
 			this.updateVariableDefinitions(this.detectedProjectorType)
 			this.updateActions(this.detectedProjectorType)
+			this.updatePresets(this.detectedProjectorType)
 		}
 
 		// Start polling
@@ -71,6 +72,7 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 				// Update variable definitions and actions based on detected type
 				this.updateVariableDefinitions(this.detectedProjectorType)
 				this.updateActions(this.detectedProjectorType)
+				this.updatePresets(this.detectedProjectorType)
 				this.setVariableValues({
 					projector_type: this.detectedProjectorType === 'boxer' ? 'Boxer 4K' : 'M-Series',
 				})
@@ -458,8 +460,8 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 		UpdateVariableDefinitions(this, projectorType)
 	}
 
-	updatePresets(): void {
-		UpdatePresets(this)
+	updatePresets(projectorType?: ProjectorType): void {
+		UpdatePresets(this, projectorType || this.getProjectorType())
 	}
 
 	getProjectorType(): ProjectorType {

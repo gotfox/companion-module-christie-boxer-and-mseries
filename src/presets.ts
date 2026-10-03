@@ -5,7 +5,9 @@ import {
 	type CompanionLayeredButtonPresetDefinition,
 } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
+import { MSERIES_INPUT_SLOTS, MSERIES_INPUTS_PER_SLOT, getTestPatterns } from './test-patterns.js'
 import type { ModuleTypes } from './types.js'
+import type { ProjectorType } from './utils.js'
 
 type LayeredPreset = CompanionLayeredButtonPresetDefinition<ModuleTypes>
 
@@ -80,7 +82,24 @@ function toggleStatePreset(
 	}
 }
 
-export function UpdatePresets(self: ModuleInstance): void {
+/** Single-action button (press to run the action, no feedback) */
+function actionPreset(
+	name: string,
+	text: string,
+	bgcolor: number,
+	actionId: string,
+	options: { [key: string]: number },
+): LayeredPreset {
+	return {
+		type: 'layered',
+		name,
+		elements: buttonFace(text, bgcolor),
+		steps: [{ down: [{ actionId, options }], up: [] }],
+		feedbacks: [],
+	}
+}
+
+export function UpdatePresets(self: ModuleInstance, projectorType: ProjectorType = 'unknown'): void {
 	const presets: CompanionPresetDefinitions<ModuleTypes> = {
 		power_on: toggleStatePreset(
 			'Power On',
@@ -155,6 +174,42 @@ export function UpdatePresets(self: ModuleInstance): void {
 		),
 	}
 
+	// OSD
+	presets.osd_on = actionPreset('OSD On', 'OSD\nON', combineRgb(0, 60, 0), 'osd', { state: 1 })
+	presets.osd_off = actionPreset('OSD Off', 'OSD\nOFF', combineRgb(60, 60, 60), 'osd', { state: 0 })
+
+	// Input slots (M-Series selects "<slot><input>", e.g. SIN 12 = slot 1 input 2)
+	const inputPresetIds: string[] = []
+	if (projectorType === 'mseries') {
+		for (const slot of MSERIES_INPUT_SLOTS) {
+			for (const input of MSERIES_INPUTS_PER_SLOT) {
+				const id = `input_slot${slot}_input${input}`
+				presets[id] = actionPreset(
+					`Slot ${slot} Input ${input}`,
+					`SLOT ${slot}\nINPUT ${input}`,
+					combineRgb(0, 0, 100),
+					'input_select',
+					{ input: slot * 10 + input },
+				)
+				inputPresetIds.push(id)
+			}
+		}
+	}
+
+	// Test patterns (the list depends on the projector type)
+	const testPatternPresetIds: string[] = []
+	for (const pattern of getTestPatterns(projectorType)) {
+		const id = `test_pattern_${pattern.id}`
+		presets[id] = actionPreset(
+			`Test Pattern: ${pattern.label}`,
+			pattern.id === 0 ? 'TEST\nOFF' : pattern.label,
+			pattern.id === 0 ? combineRgb(100, 0, 0) : combineRgb(60, 60, 60),
+			'test_pattern',
+			{ pattern: pattern.id },
+		)
+		testPatternPresetIds.push(id)
+	}
+
 	const structure: CompanionPresetSection<ModuleTypes>[] = [
 		{
 			id: 'power',
@@ -166,6 +221,27 @@ export function UpdatePresets(self: ModuleInstance): void {
 			name: 'Shutter',
 			definitions: [
 				{ id: 'shutter_buttons', type: 'simple', name: 'Shutter', presets: ['shutter_open', 'shutter_close'] },
+			],
+		},
+		{
+			id: 'osd',
+			name: 'On-Screen Display',
+			definitions: [{ id: 'osd_buttons', type: 'simple', name: 'OSD', presets: ['osd_on', 'osd_off'] }],
+		},
+		...(inputPresetIds.length > 0
+			? [
+					{
+						id: 'inputs',
+						name: 'Inputs',
+						definitions: [{ id: 'input_slots', type: 'simple' as const, name: 'Input Slots', presets: inputPresetIds }],
+					},
+				]
+			: []),
+		{
+			id: 'test_patterns',
+			name: 'Test Patterns',
+			definitions: [
+				{ id: 'test_pattern_buttons', type: 'simple', name: 'Test Patterns', presets: testPatternPresetIds },
 			],
 		},
 		{

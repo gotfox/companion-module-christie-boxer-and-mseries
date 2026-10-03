@@ -80,9 +80,21 @@ This module provides complete control and monitoring of Christie Digital profess
 - **Horizontal Offset**: `LHO <position>` (-1600 to 1600)
 - **Vertical Offset**: `LVO <position>` (-1600 to 1600)
 
+### On-Screen Display
+
+- **On-Screen Display** (dropdown On/Off): `OSD 1` / `OSD 0`
+
 ### Input Selection
 
-- **Select Input**: `SIN <input>` (0-20)
+- **Select Input**: `SIN <input>`
+  - Boxer: plain input number (0-20)
+  - M-Series: `<slot><input>`, e.g. `SIN 12` = slot 1 input 2 (slots 1-4, inputs 1-2)
+
+## Presets
+
+Sections: Power, Shutter, On-Screen Display, Inputs (M-Series only: slots 1-4 x inputs 1-2), Test Patterns (one button per pattern; the list depends on the projector type, see `test-patterns.ts`), and Lens (hold-to-move). Presets are rebuilt once the projector type is known.
+
+**Boxer input presets are not provided**: Boxer input numbers depend on the port configuration (`SIN?L`) and are not documented.
 
 ### Custom Commands
 
@@ -187,6 +199,7 @@ src/
 ├── actions.ts        - Action definitions
 ├── feedbacks.ts      - Feedback definitions
 ├── presets.ts        - Preset sections and button definitions
+├── test-patterns.ts  - Test pattern lists per projector type and M-Series input slots
 ├── types.ts          - Module generic types (config/secrets) for InstanceBase
 ├── variables.ts      - Variable definitions
 ├── utils.ts          - Protocol utilities and parsers
