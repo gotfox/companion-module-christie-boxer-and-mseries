@@ -1,9 +1,9 @@
-import type { CompanionVariableDefinition } from '@companion-module/base'
+import type { CompanionVariableDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import type { ProjectorType } from './utils.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: ProjectorType = 'unknown'): void {
-	const variables: CompanionVariableDefinition[] = [
+	const variables: { variableId: string; name: string }[] = [
 		// ====================
 		// GENERAL STATUS
 		// ====================
@@ -140,7 +140,11 @@ export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: P
 		)
 	}
 
-	self.setVariableDefinitions(variables)
+	const definitions: CompanionVariableDefinitions = {}
+	for (const { variableId, name } of variables) {
+		definitions[variableId] = { name }
+	}
+	self.setVariableDefinitions(definitions)
 
 	// ====================
 	// INITIAL VALUES

@@ -1,6 +1,6 @@
 import type { CompanionActionDefinitions, CompanionActionEvent } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
-import type { ProjectorType } from './utils.js'
+import { optionString, type ProjectorType } from './utils.js'
 
 // Track active lens movements
 const activeLensMovements = new Map<string, NodeJS.Timeout>()
@@ -67,7 +67,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`PWR ${event.options.state}`)
+					await self.connection.sendCommand(`PWR ${optionString(event.options.state)}`)
 					self.log('info', `Power ${event.options.state === 1 ? 'on' : 'off'} command sent`)
 				} catch (error) {
 					self.log('error', `Power command failed: ${error}`)
@@ -91,7 +91,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`SHU ${event.options.state}`)
+					await self.connection.sendCommand(`SHU ${optionString(event.options.state)}`)
 					self.log('info', `Shutter ${event.options.state === 0 ? 'open' : 'close'} command sent`)
 				} catch (error) {
 					self.log('error', `Shutter command failed: ${error}`)
@@ -112,8 +112,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`ITP ${event.options.pattern}`)
-					self.log('info', `Test pattern ${event.options.pattern} sent`)
+					await self.connection.sendCommand(`ITP ${optionString(event.options.pattern)}`)
+					self.log('info', `Test pattern ${optionString(event.options.pattern)} sent`)
 				} catch (error) {
 					self.log('error', `Test pattern failed: ${error}`)
 				}
@@ -134,8 +134,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`FCS ${event.options.position}`)
-					self.log('info', `Lens focus set to ${event.options.position}`)
+					await self.connection.sendCommand(`FCS ${optionString(event.options.position)}`)
+					self.log('info', `Lens focus set to ${optionString(event.options.position)}`)
 				} catch (error) {
 					self.log('error', `Lens focus failed: ${error}`)
 				}
@@ -170,7 +170,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'focus', 'increase', speed, action)
 			},
 		},
@@ -203,7 +203,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'focus', 'decrease', speed, action)
 			},
 		},
@@ -222,8 +222,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`ZOM ${event.options.position}`)
-					self.log('info', `Lens zoom set to ${event.options.position}`)
+					await self.connection.sendCommand(`ZOM ${optionString(event.options.position)}`)
+					self.log('info', `Lens zoom set to ${optionString(event.options.position)}`)
 				} catch (error) {
 					self.log('error', `Lens zoom failed: ${error}`)
 				}
@@ -258,7 +258,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'zoom', 'increase', speed, action)
 			},
 		},
@@ -291,7 +291,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'zoom', 'decrease', speed, action)
 			},
 		},
@@ -310,8 +310,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`LHO ${event.options.position}`)
-					self.log('info', `Lens horizontal offset set to ${event.options.position}`)
+					await self.connection.sendCommand(`LHO ${optionString(event.options.position)}`)
+					self.log('info', `Lens horizontal offset set to ${optionString(event.options.position)}`)
 				} catch (error) {
 					self.log('error', `Lens horizontal offset failed: ${error}`)
 				}
@@ -346,7 +346,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'horizontal', 'increase', speed, action)
 			},
 		},
@@ -379,7 +379,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'horizontal', 'decrease', speed, action)
 			},
 		},
@@ -398,8 +398,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`LVO ${event.options.position}`)
-					self.log('info', `Lens vertical offset set to ${event.options.position}`)
+					await self.connection.sendCommand(`LVO ${optionString(event.options.position)}`)
+					self.log('info', `Lens vertical offset set to ${optionString(event.options.position)}`)
 				} catch (error) {
 					self.log('error', `Lens vertical offset failed: ${error}`)
 				}
@@ -434,7 +434,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'vertical', 'increase', speed, action)
 			},
 		},
@@ -467,7 +467,7 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event: CompanionActionEvent) => {
 				const speed = Number(event.options.speed)
-				const action = String(event.options.action)
+				const action = optionString(event.options.action)
 				handleLensMovement(self, 'vertical', 'decrease', speed, action)
 			},
 		},
@@ -507,8 +507,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					await self.connection.sendCommand(`SIN ${event.options.input}`)
-					self.log('info', `Input ${event.options.input} selected`)
+					await self.connection.sendCommand(`SIN ${optionString(event.options.input)}`)
+					self.log('info', `Input ${optionString(event.options.input)} selected`)
 				} catch (error) {
 					self.log('error', `Input select failed: ${error}`)
 				}
@@ -528,7 +528,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 			],
 			callback: async (event) => {
 				try {
-					const cmd = await self.parseVariablesInString(event.options.command as string)
+					// Companion resolves variables in the field before the callback runs (useVariables)
+					const cmd = optionString(event.options.command)
 					await self.connection.sendCommand(cmd)
 					self.log('info', `Custom command sent: ${cmd}`)
 				} catch (error) {
@@ -555,16 +556,8 @@ function handleLensMovement(
 	const key = `${axis}_${direction}`
 	const isActive = activeLensMovements.has(key)
 
-	// Determine what to do based on action parameter
-	let shouldStart = false
-	if (action === 'start') {
-		shouldStart = true
-	} else if (action === 'stop') {
-		shouldStart = false
-	} else {
-		// toggle
-		shouldStart = !isActive
-	}
+	// 'start' always starts, 'stop' always stops, anything else (toggle) flips the current state
+	const shouldStart = action === 'start' || (action !== 'stop' && !isActive)
 
 	// Stop movement if requested or if toggling to stop
 	if (!shouldStart) {

@@ -1,7 +1,7 @@
-import { InstanceBase, runEntrypoint, InstanceStatus, SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, type SomeCompanionConfigField } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
 import { UpdateVariableDefinitions } from './variables.js'
-import { UpgradeScripts } from './upgrades.js'
+import type { ModuleTypes } from './types.js'
 import { UpdateActions, stopAllLensMovements } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
@@ -14,7 +14,7 @@ import {
 	type ProjectorType,
 } from './utils.js'
 
-export class ModuleInstance extends InstanceBase<ModuleConfig> {
+export class ModuleInstance extends InstanceBase<ModuleTypes> {
 	config!: ModuleConfig
 	connection!: ChristieConnection
 	detectedProjectorType: ProjectorType = 'unknown'
@@ -25,7 +25,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		super(internal)
 	}
 
-	async init(config: ModuleConfig): Promise<void> {
+	async init(config: ModuleConfig, _isFirstInit: boolean): Promise<void> {
 		this.config = config
 		this.connection = new ChristieConnection(this)
 
@@ -178,7 +178,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.setVariableValues({ current_time: timeParsed.value })
 			}
 
-			this.checkFeedbacks()
+			this.checkAllFeedbacks()
 		} catch (error) {
 			this.log('warn', `Polling error: ${error}`)
 		}
@@ -423,7 +423,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.connection.disconnect()
 	}
 
-	async configUpdated(config: ModuleConfig): Promise<void> {
+	async configUpdated(config: ModuleConfig, _secrets: undefined): Promise<void> {
 		const reconnect = config.host !== this.config.host || config.port !== this.config.port
 		const typeChanged = config.projectorType !== this.config.projectorType
 
@@ -443,7 +443,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	getConfigFields(): SomeCompanionConfigField[] {
-		return GetConfigFields()
+		return GetConfigFields(this.detectedProjectorType)
 	}
 
 	updateActions(projectorType?: ProjectorType): void {
@@ -467,4 +467,5 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 }
 
-runEntrypoint(ModuleInstance, UpgradeScripts)
+export default ModuleInstance
+export { UpgradeScripts } from './upgrades.js'

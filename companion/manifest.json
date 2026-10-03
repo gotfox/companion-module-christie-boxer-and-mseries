@@ -1,4 +1,5 @@
 {
+	"type": "connection",
 	"id": "christie-boxer-and-mseries",
 	"name": "christie-boxer-and-mseries",
 	"shortname": "christie-projector",
@@ -16,6 +17,6 @@
 	},
 	"legacyIds": [],
 	"manufacturer": "Christie Digital",
-	"products": ["Boxer 4K", "M-Series", "D4K"],
-	"keywords": ["projector", "christie", "boxer", "mseries", "d4k", "professional"]
+	"products": ["Boxer 4K", "M-Series"],
+	"keywords": ["projector", "christie", "boxer", "mseries", "professional"]
 }

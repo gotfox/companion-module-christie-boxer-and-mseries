@@ -6,7 +6,6 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 
 - **Christie Boxer 4K** (Type 55) - 6 lamp configuration
 - **Christie M-Series** (Type 44) - 2 lamp configuration
-- **Christie D4K** (Type 54) - Treated as Boxer 4K
 
 ## Features
 
@@ -30,10 +29,12 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 ## Actions
 
 ### Power & Shutter
+
 - Power On/Off
 - Shutter Open/Close
 
 ### Test Patterns
+
 - Grid patterns (various sizes)
 - Color bars (SMPTE, EBU, etc.)
 - Grey scale & ramps
@@ -42,12 +43,14 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 - Edge blend patterns
 
 ### Lens Control
+
 - Focus: -5000 to 5000
 - Zoom: -5000 to 5000
 - Horizontal Offset: -1600 to 1600
 - Vertical Offset: -1600 to 1600
 
 ### Other
+
 - Input Selection (0-20)
 - Custom Command (with variable support)
 
@@ -61,6 +64,7 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 ## Variables
 
 ### Status Variables
+
 - `projector_type`: Detected model
 - `power_status`: 0=Off, 1=On, 2=Cooling, 3=Warming
 - `shutter_status`: 0=Open, 1=Closed
@@ -68,6 +72,7 @@ Bitfocus Companion module for controlling Christie Digital Boxer 4K and M-Series
 - `current_input`: Active input number
 
 ### Lamp Variables (per lamp)
+
 - `lamp_X_state`: Lamp state
 - `lamp_X_hours`: Runtime in HH:MM format
 - `lamp_X_status`: Lamp status
@@ -90,6 +95,7 @@ Commands follow format: `(COMMAND value)`
 Responses follow format: `(CODE!value "description")`
 
 Example commands:
+
 - `(PWR 1)` - Power on
 - `(PWR 0)` - Power off
 - `(SHU 0)` - Shutter open
@@ -99,16 +105,19 @@ Example commands:
 ## Development
 
 ### Setup
+
 ```bash
 yarn install
 ```
 
 ### Build
+
 ```bash
 yarn build
 ```
 
 ### Development Mode
+
 ```bash
 yarn dev
 ```
@@ -116,6 +125,7 @@ yarn dev
 The compiler will watch for changes and recompile automatically.
 
 ### Project Structure
+
 ```
 src/
 ├── main.ts           - Main module with polling logic
@@ -131,16 +141,19 @@ src/
 ## Troubleshooting
 
 ### Connection Issues
+
 - Verify IP address and port (default 3002)
 - Ensure projector's network interface is enabled
 - Check firewall settings
 
 ### Auto-Detection Fails
+
 - Manually select projector type in config
 - Verify projector responds to `(PNG?)` command
 - Check debug logs for response details
 
 ### Lamp Info Not Updating
+
 - Lamp polling occurs every 30 minutes
 - Restart module to trigger immediate poll
 - Verify projector supports `SST+LMP` commands

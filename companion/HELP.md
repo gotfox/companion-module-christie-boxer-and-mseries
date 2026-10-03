@@ -6,7 +6,6 @@ This module provides comprehensive control of Christie Digital Boxer 4K and M-Se
 
 - Christie Boxer 4K (6 lamps)
 - Christie M-Series (2 lamps)
-- Christie D4K (treated as Boxer 4K)
 
 ## Configuration
 
@@ -27,15 +26,19 @@ Ensure your Christie projector's network interface is configured and accessible 
 ## Available Actions
 
 ### Power Control
+
 - **Power On**: Turn the projector on
 - **Power Off**: Turn the projector off
 
 ### Shutter Control
+
 - **Shutter Open**: Open the shutter (display image)
 - **Shutter Close**: Close the shutter (blank screen)
 
 ### Test Patterns
+
 Display built-in test patterns including:
+
 - Grid patterns (various sizes)
 - Color bars (SMPTE, EBU, Full, Split)
 - Grey scale patterns
@@ -46,16 +49,20 @@ Display built-in test patterns including:
 - And many more...
 
 ### Lens Control
+
 Fine-tune lens position:
+
 - **Lens Focus**: Adjust focus (-5000 to 5000)
 - **Lens Zoom**: Adjust zoom (-5000 to 5000)
 - **Horizontal Offset**: Move lens horizontally (-1600 to 1600)
 - **Vertical Offset**: Move lens vertically (-1600 to 1600)
 
 ### Input Selection
+
 - **Select Input**: Choose from inputs 0-20
 
 ### Custom Commands
+
 - **Custom Command**: Send any Christie API command
   - Supports Companion variables
   - Use for advanced control not covered by standard actions
@@ -63,19 +70,23 @@ Fine-tune lens position:
 ## Available Feedbacks
 
 ### Power Feedbacks
+
 - **Power State**: Match specific state (Off/On/Cooling/Warming)
 - **Power Is On**: Simple on indicator
 - **Power Is Off**: Simple off indicator
 
 ### Shutter Feedbacks
+
 - **Shutter State**: Match specific state (Open/Closed)
 - **Shutter Is Open**: Simple open indicator
 - **Shutter Is Closed**: Simple closed indicator
 
 ### Signal Feedback
+
 - **Signal Present**: Indicates when video signal is detected
 
 ### Lamp Monitoring
+
 - **Lamp Hours Threshold**: Alert when any lamp exceeds specified hours
   - Configurable threshold (default 1000 hours)
   - Works for all lamps (1-6 for Boxer, 1-2 for M-Series)
@@ -83,6 +94,7 @@ Fine-tune lens position:
 ## Available Variables
 
 ### Status Variables
+
 - `$(INSTANCENAME:projector_type)`: Detected projector model
 - `$(INSTANCENAME:power_status)`: Power state (0=Off, 1=On, 2=Cooling, 3=Warming)
 - `$(INSTANCENAME:shutter_status)`: Shutter state (0=Open, 1=Closed)
@@ -90,7 +102,9 @@ Fine-tune lens position:
 - `$(INSTANCENAME:current_input)`: Active input number
 
 ### Lamp Variables
+
 For each lamp (replace X with 1-6):
+
 - `$(INSTANCENAME:lamp_X_state)`: Lamp state
 - `$(INSTANCENAME:lamp_X_hours)`: Runtime in HH:MM format
 - `$(INSTANCENAME:lamp_X_status)`: Lamp status
@@ -103,14 +117,18 @@ For each lamp (replace X with 1-6):
 ## Monitoring
 
 ### Status Polling
+
 The module automatically polls projector status at your configured interval (default 3 seconds):
+
 - Power state
 - Shutter state
 - Signal presence
 - **Lamp voltage** (Boxer only) - updated every 3 seconds for real-time monitoring
 
 ### Lamp Info Polling
+
 Static lamp information is polled every 30 minutes to track:
+
 - Runtime hours
 - Lamp state and status
 - Serial numbers
@@ -119,21 +137,25 @@ Static lamp information is polled every 30 minutes to track:
 ## Troubleshooting
 
 ### Module shows "Disconnected"
+
 - Verify the projector IP address is correct
 - Ensure port 3002 is accessible (check firewalls)
 - Confirm the projector's network interface is enabled
 
 ### Auto-detection not working
+
 - Check that the projector is powered on
 - Try manually selecting the projector type in configuration
 - Verify network connectivity
 
 ### Variables showing "Unknown"
+
 - Wait for the first polling cycle to complete (a few seconds)
 - Check the module's debug logs for errors
 - Verify the projector is responding to commands
 
 ### Lamp information not updating
+
 - Lamp polling occurs every 30 minutes
 - Restart the module to trigger an immediate poll
 - Some projector models may not support all lamp data fields

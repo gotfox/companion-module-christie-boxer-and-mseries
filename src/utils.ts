@@ -182,7 +182,6 @@ export function formatHours(hoursString: string): string {
  * Response format: (PNG!055 001 008 002) where 055 is the type code in subcode field
  * (PNG!044 002 005 003) -> M-Series (44)
  * (PNG!055 ...) -> Boxer 4K (55)
- * (PNG!054 ...) -> D4K (54)
  */
 export function detectProjectorType(response: string): ProjectorType {
 	const parsed = parseResponse(response)
@@ -196,8 +195,6 @@ export function detectProjectorType(response: string): ProjectorType {
 		return 'mseries'
 	} else if (typeCode === '055' || typeCode === '55') {
 		return 'boxer'
-	} else if (typeCode === '054' || typeCode === '54') {
-		return 'boxer' // D4K uses same commands as Boxer
 	}
 
 	return 'unknown'
@@ -303,4 +300,13 @@ export function parseLampInfo(
 			voltage: 'N/A', // M-Series doesn't expose voltage in simple query
 		}
 	}
+}
+
+/**
+ * Safely convert an action/feedback option value (any JSON value) to a string
+ */
+export function optionString(value: unknown): string {
+	if (typeof value === 'string') return value
+	if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+	return ''
 }

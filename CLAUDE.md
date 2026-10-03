@@ -16,17 +16,16 @@ This module provides complete control and monitoring of Christie Digital profess
   - 2 lamps
   - Full lens control support
 
-- **Christie D4K** (Type 54)
-  - Treated as Boxer 4K (uses same command set)
-
 ## Features
 
 ### Auto-Detection
+
 - Automatically detects projector type using the `PNG?` command
 - Falls back to manual selection if auto-detection fails
 - Updates status and variables based on detected type
 
 ### Real-Time Monitoring
+
 - **Status Polling**: Configurable interval (default 3 seconds)
   - Power status (Off, On, Cooling, Warming)
   - Shutter status (Open, Closed)
@@ -39,6 +38,7 @@ This module provides complete control and monitoring of Christie Digital profess
   - Serial numbers and install dates (static information)
 
 ### Command Queue System
+
 - Sequential command/response handling
 - 1000ms timeout per command
 - Automatic retry logic
@@ -47,6 +47,7 @@ This module provides complete control and monitoring of Christie Digital profess
 ## Configuration
 
 ### Connection Settings
+
 - **Target IP**: IP address of the projector
 - **Target Port**: Default 3002 (Christie serial protocol over Ethernet)
 - **Projector Type**: Auto-detect, Boxer 4K, or M-Series
@@ -55,14 +56,15 @@ This module provides complete control and monitoring of Christie Digital profess
 ## Actions
 
 ### Power Control
-- **Power On**: `PWR 1`
-- **Power Off**: `PWR 0`
+
+- **Power** (dropdown On/Off): `PWR 1` / `PWR 0`
 
 ### Shutter Control
-- **Shutter Open**: `SHU 0`
-- **Shutter Close**: `SHU 1`
+
+- **Shutter** (dropdown Open/Close): `SHU 0` / `SHU 1`
 
 ### Test Patterns
+
 - **Test Pattern**: `ITP <index>`
   - 25+ built-in test patterns including:
     - Grid, Checker, Color Bars
@@ -72,15 +74,18 @@ This module provides complete control and monitoring of Christie Digital profess
     - And more...
 
 ### Lens Control
+
 - **Lens Focus**: `FCS <position>` (-5000 to 5000)
 - **Lens Zoom**: `ZOM <position>` (-5000 to 5000)
 - **Horizontal Offset**: `LHO <position>` (-1600 to 1600)
 - **Vertical Offset**: `LVO <position>` (-1600 to 1600)
 
 ### Input Selection
+
 - **Select Input**: `SIN <input>` (0-20)
 
 ### Custom Commands
+
 - **Custom Command**: Send any arbitrary command
   - Supports Companion variables
   - Useful for advanced control
@@ -88,6 +93,7 @@ This module provides complete control and monitoring of Christie Digital profess
 ## Feedbacks
 
 ### Power State Feedbacks
+
 - **Power State**: Match specific power state (Off/On/Cooling/Warming)
   - Default: Green background when on
 - **Power Is On**: Simple on/off indicator
@@ -96,6 +102,7 @@ This module provides complete control and monitoring of Christie Digital profess
   - Default: Dark grey background
 
 ### Shutter State Feedbacks
+
 - **Shutter State**: Match specific shutter state (Open/Closed)
   - Default: Orange background
 - **Shutter Is Open**: Simple open/closed indicator
@@ -104,10 +111,12 @@ This module provides complete control and monitoring of Christie Digital profess
   - Default: Red background
 
 ### Signal Feedback
+
 - **Signal Present**: Indicates active video signal
   - Default: Green background
 
 ### Lamp Monitoring
+
 - **Lamp Hours Threshold**: Alert when lamp exceeds threshold
   - Configurable per lamp (1-6)
   - Default threshold: 1000 hours
@@ -116,6 +125,7 @@ This module provides complete control and monitoring of Christie Digital profess
 ## Variables
 
 ### General Status
+
 - `projector_type`: Detected projector model
 - `power_status`: Current power state (0=Off, 1=On, 2=Cooling, 3=Warming)
 - `shutter_status`: Current shutter state (0=Open, 1=Closed)
@@ -123,7 +133,9 @@ This module provides complete control and monitoring of Christie Digital profess
 - `current_input`: Active input number
 
 ### Lamp Information
+
 For each lamp (1-6 for Boxer, 1-2 for M-Series):
+
 - `lamp_X_state`: Lamp state
 - `lamp_X_hours`: Runtime in HH:MM format
 - `lamp_X_status`: Lamp status
@@ -136,6 +148,7 @@ For each lamp (1-6 for Boxer, 1-2 for M-Series):
 ## Technical Details
 
 ### Protocol Specification
+
 - **Connection**: TCP/IP on port 3002
 - **Command Format**: `(COMMAND)` or `(COMMAND value)`
 - **Response Format**: `(CODE!value "description")`
@@ -143,6 +156,7 @@ For each lamp (1-6 for Boxer, 1-2 for M-Series):
 - **Termination**: No line termination character
 
 ### Command Examples
+
 ```
 Power On:     (PWR 1)      -> (PWR!001 000 "1" "On")
 Power Query:  (PWR?)       -> (PWR!001 000 "1" "On")
@@ -151,20 +165,23 @@ Lamp Query:   (SST+LMP!000?) -> (SST+LMP!000 000 "1" "On")
 ```
 
 ### Auto-Detection Logic
+
 1. Send `(PNG?)` command
 2. Parse response to extract type code
 3. Map type code to projector model:
    - 044 = M-Series
    - 055 = Boxer 4K
-   - 054 = D4K (treated as Boxer)
 
 ### Response Parsing
+
 The module handles multiple response formats:
+
 - Simple value: `(CMD!value)`
 - Value with description: `(CMD!value "description")`
 - Full format: `(CMD!subcode errorcode "value" "description")`
 
 Special handling:
+
 - Escaped characters are removed: `\\(h:m\\)` becomes clean text
 - Hours format normalized: `"314:41 \\(h:m\\)"` becomes `"314:41"`
 
@@ -177,6 +194,8 @@ src/
 ├── connection.ts     - TCP connection and command queue manager
 ├── actions.ts        - Action definitions
 ├── feedbacks.ts      - Feedback definitions
+├── presets.ts        - Preset sections and button definitions
+├── types.ts          - Module generic types (config/secrets) for InstanceBase
 ├── variables.ts      - Variable definitions
 ├── utils.ts          - Protocol utilities and parsers
 └── upgrades.ts       - Module upgrade scripts
@@ -184,25 +203,35 @@ src/
 
 ## Development Notes
 
+### Companion Module API
+
+- Uses `@companion-module/base` 2.x (Companion module API v2): default-exported `ModuleInstance`, `UpgradeScripts` re-exported from `main.ts`, presets of `type: 'simple'` organised into sections via `setPresetDefinitions(structure, presets)`, variable definitions as an object keyed by id, and `checkAllFeedbacks()` instead of argument-less `checkFeedbacks()`.
+- Config is a `type` alias (not an interface) so it satisfies the `JsonObject` constraint.
+- Lens +/- buttons are presets with `start` on press and `stop` on release (`lens_*_increase` / `lens_*_decrease` actions).
+
 ### Adding New Actions
+
 1. Add action definition in `actions.ts`
 2. Use `self.connection.sendCommand(command)` for async execution
 3. Add error handling with try/catch
 4. Log success and errors appropriately
 
 ### Adding New Feedbacks
+
 1. Add feedback definition in `feedbacks.ts`
 2. Use `self.getVariableValue(variableId)` to read state
 3. Define default style (colors)
 4. Return boolean for activation state
 
 ### Adding New Variables
+
 1. Add variable definition in `variables.ts`
 2. Set initial value to 'Unknown' or 'N/A'
 3. Update value in polling functions (`pollStatus` or `pollLampInfo`)
 4. Call `self.checkFeedbacks()` after updates if needed
 
 ### Testing
+
 - Use the Custom Command action to test new commands
 - Monitor debug logs for protocol-level details
 - Verify response parsing with known projector responses
@@ -210,21 +239,25 @@ src/
 ## Troubleshooting
 
 ### Connection Issues
+
 - Verify IP address and port (default 3002)
 - Check network connectivity to projector
 - Ensure projector's network interface is enabled
 
 ### Auto-Detection Fails
+
 - Manually select projector type in configuration
 - Check debug logs for response details
 - Verify projector responds to `(PNG?)` command
 
 ### Polling Errors
+
 - Check timeout value (default 1000ms may need adjustment)
 - Reduce polling interval if network is slow
 - Monitor logs for specific command failures
 
 ### Lamp Information Not Updating
+
 - Ensure lamp polling is active (every 30 minutes)
 - Manually trigger poll by restarting module
 - Check projector supports `SST+LMP` commands
@@ -234,6 +267,7 @@ src/
 Based on Christie Digital API documentation (020-101697-12).
 
 ### Key Commands
+
 - `PWR <0|1>` - Power control
 - `SHU <0|1>` - Shutter control
 - `ITP <index>` - Internal test pattern

@@ -1,6 +1,38 @@
-import type { CompanionFeedbackDefinitions } from '@companion-module/base'
-import { combineRgb } from '@companion-module/base'
+import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
+import { optionString } from './utils.js'
+
+/** Variables that hold the signal state of every Boxer input / the M-Series main input */
+const BOXER_SIGNAL_VARIABLES = [
+	'signal_hdbaset',
+	'signal_card0_input1',
+	'signal_card0_input2',
+	'signal_card0_input3',
+	'signal_card0_input4',
+	'signal_card1_input1',
+	'signal_card1_input2',
+	'signal_card2_input1',
+	'signal_card2_input2',
+	'signal_card3_input1',
+	'signal_card3_input2',
+	'signal_card4_input1',
+	'signal_card4_input2',
+]
+
+/** Normalised (lower case) power status text, e.g. "on", "standby mode", "cooling down", "warming up" */
+function getPowerStatus(self: ModuleInstance): string {
+	return optionString(self.getVariableValue('power_status')).toLowerCase()
+}
+
+/** Normalised (lower case) shutter status text: "open" or "closed" */
+function getShutterStatus(self: ModuleInstance): string {
+	return optionString(self.getVariableValue('shutter_status')).toLowerCase()
+}
+
+function isSignalGood(value: unknown): boolean {
+	const text = optionString(value).toLowerCase()
+	return text !== '' && !/no signal|unknown|n\/a|^none$/.test(text)
+}
 
 export function UpdateFeedbacks(self: ModuleInstance): void {
 	const feedbacks: CompanionFeedbackDefinitions = {
@@ -16,18 +48,17 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 					id: 'state',
 					type: 'dropdown',
 					label: 'State',
-					default: '1',
+					default: 'on',
 					choices: [
-						{ id: '0', label: 'Off' },
-						{ id: '1', label: 'On' },
-						{ id: '2', label: 'Cooling' },
-						{ id: '3', label: 'Warming' },
+						{ id: 'standby', label: 'Standby' },
+						{ id: 'on', label: 'On' },
+						{ id: 'cooling', label: 'Cooling Down' },
+						{ id: 'warming', label: 'Warming Up' },
 					],
 				},
 			],
 			callback: (feedback) => {
-				const powerStatus = self.getVariableValue('power_status')
-				return powerStatus === feedback.options.state
+				return getPowerStatus(self).startsWith(optionString(feedback.options.state))
 			},
 		},
 
@@ -43,21 +74,21 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 					id: 'state',
 					type: 'dropdown',
 					label: 'State',
-					default: '0',
+					default: 'open',
 					choices: [
-						{ id: '0', label: 'Open' },
-						{ id: '1', label: 'Closed' },
+						{ id: 'open', label: 'Open' },
+						{ id: 'closed', label: 'Closed' },
 					],
 				},
 			],
 			callback: (feedback) => {
-				const shutterStatus = self.getVariableValue('shutter_status')
-				return shutterStatus === feedback.options.state
+				return getShutterStatus(self) === optionString(feedback.options.state)
 			},
 		},
 
 		signal_present: {
 			name: 'Signal Present',
+			description: 'Active when any input (Boxer) or the main input (M-Series) reports a signal',
 			type: 'boolean',
 			defaultStyle: {
 				bgcolor: combineRgb(0, 200, 0),
@@ -65,9 +96,10 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			},
 			options: [],
 			callback: () => {
-				const signalStatus = self.getVariableValue('signal_status')
-				// Signal is present if status is '1' or any non-zero value
-				return signalStatus === '1' || (signalStatus !== '0' && signalStatus !== '')
+				if (self.getProjectorType() === 'mseries') {
+					return isSignalGood(self.getVariableValue('main_signal_state'))
+				}
+				return BOXER_SIGNAL_VARIABLES.some((variableId) => isSignalGood(self.getVariableValue(variableId)))
 			},
 		},
 
@@ -87,10 +119,10 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 					choices: [
 						{ id: 'lamp_1_hours', label: 'Lamp 1' },
 						{ id: 'lamp_2_hours', label: 'Lamp 2' },
-						{ id: 'lamp_3_hours', label: 'Lamp 3' },
-						{ id: 'lamp_4_hours', label: 'Lamp 4' },
-						{ id: 'lamp_5_hours', label: 'Lamp 5' },
-						{ id: 'lamp_6_hours', label: 'Lamp 6' },
+						{ id: 'lamp_3_hours', label: 'Lamp 3 (Boxer only)' },
+						{ id: 'lamp_4_hours', label: 'Lamp 4 (Boxer only)' },
+						{ id: 'lamp_5_hours', label: 'Lamp 5 (Boxer only)' },
+						{ id: 'lamp_6_hours', label: 'Lamp 6 (Boxer only)' },
 					],
 				},
 				{
@@ -103,19 +135,15 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				},
 			],
 			callback: (feedback) => {
-				const lampHoursStr = self.getVariableValue(feedback.options.lamp as string)
-				if (!lampHoursStr || lampHoursStr === 'Unknown' || lampHoursStr === 'N/A') {
-					return false
-				}
+				const lampHoursStr = self.getVariableValue(optionString(feedback.options.lamp))
 
 				// Parse hours from format "314:41" -> 314
-				const hoursMatch = lampHoursStr.toString().match(/^(\d+):/)
+				const hoursMatch = optionString(lampHoursStr).match(/^(\d+):/)
 				if (!hoursMatch) {
 					return false
 				}
 
-				const hours = parseInt(hoursMatch[1], 10)
-				return hours >= Number(feedback.options.threshold)
+				return parseInt(hoursMatch[1], 10) >= Number(feedback.options.threshold)
 			},
 		},
 
@@ -127,24 +155,19 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				color: combineRgb(0, 0, 0),
 			},
 			options: [],
-			callback: () => {
-				const powerStatus = self.getVariableValue('power_status')
-				return powerStatus === '1'
-			},
+			callback: () => getPowerStatus(self) === 'on',
 		},
 
 		power_off: {
 			name: 'Power Is Off',
+			description: 'Active while the projector is in standby',
 			type: 'boolean',
 			defaultStyle: {
 				bgcolor: combineRgb(64, 64, 64),
 				color: combineRgb(255, 255, 255),
 			},
 			options: [],
-			callback: () => {
-				const powerStatus = self.getVariableValue('power_status')
-				return powerStatus === '0'
-			},
+			callback: () => getPowerStatus(self).startsWith('standby'),
 		},
 
 		shutter_open: {
@@ -155,10 +178,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				color: combineRgb(255, 255, 255),
 			},
 			options: [],
-			callback: () => {
-				const shutterStatus = self.getVariableValue('shutter_status')
-				return shutterStatus === '0'
-			},
+			callback: () => getShutterStatus(self) === 'open',
 		},
 
 		shutter_closed: {
@@ -169,10 +189,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				color: combineRgb(255, 255, 255),
 			},
 			options: [],
-			callback: () => {
-				const shutterStatus = self.getVariableValue('shutter_status')
-				return shutterStatus === '1'
-			},
+			callback: () => getShutterStatus(self) === 'closed',
 		},
 	}
 
