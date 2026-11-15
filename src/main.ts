@@ -6,6 +6,7 @@ import { UpdateActions, stopAllLensMovements } from './actions.js'
 import { UpdateFeedbacks } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
 import { ChristieConnection } from './connection.js'
+import { getLegacyVariableValues } from './legacy-variables.js'
 import {
 	detectProjectorType,
 	parseResponse,
@@ -20,9 +21,20 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 	detectedProjectorType: ProjectorType = 'unknown'
 	pollTimer: NodeJS.Timeout | null = null
 	lampPollTimer: NodeJS.Timeout | null = null
+	/** Polls are skipped while the previous one is still waiting for the projector, or commands pile up */
+	private statusPollRunning = false
+	private lampPollRunning = false
 
 	constructor(internal: unknown) {
 		super(internal)
+	}
+
+	/**
+	 * Also keeps the variable ids of companion-module-christie-projector up to date,
+	 * so button text that references them keeps working (see legacy-variables.ts)
+	 */
+	override setVariableValues(values: Parameters<InstanceBase<ModuleTypes>['setVariableValues']>[0]): void {
+		super.setVariableValues({ ...values, ...getLegacyVariableValues(values) })
 	}
 
 	async init(config: ModuleConfig, _isFirstInit: boolean): Promise<void> {
@@ -54,6 +66,7 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 			// Update variable definitions and actions based on manually selected type
 			this.updateVariableDefinitions(this.detectedProjectorType)
 			this.updateActions(this.detectedProjectorType)
+			this.updateFeedbacks()
 			this.updatePresets(this.detectedProjectorType)
 		}
 
@@ -72,6 +85,7 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 				// Update variable definitions and actions based on detected type
 				this.updateVariableDefinitions(this.detectedProjectorType)
 				this.updateActions(this.detectedProjectorType)
+				this.updateFeedbacks()
 				this.updatePresets(this.detectedProjectorType)
 				this.setVariableValues({
 					projector_type: this.detectedProjectorType === 'boxer' ? 'Boxer 4K' : 'M-Series',
@@ -126,9 +140,10 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 	 * Polls frequently changing data: power, shutter, lens positions, test pattern, date/time
 	 */
 	async pollStatus(): Promise<void> {
-		if (!this.connection.isConnected()) {
+		if (!this.connection.isConnected() || this.statusPollRunning) {
 			return
 		}
+		this.statusPollRunning = true
 
 		try {
 			// Poll power status
@@ -160,12 +175,7 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 			await this.pollLensPositions()
 
 			// Poll test pattern
-			const testPatternResponse = await this.connection.sendCommand('ITP?')
-			const testPatternParsed = parseResponse(testPatternResponse)
-			if (testPatternParsed) {
-				// Use description field (e.g., "Off") instead of value (e.g., "000")
-				this.setVariableValues({ test_pattern: testPatternParsed.description || testPatternParsed.value })
-			}
+			await this.pollTestPattern()
 
 			// Poll date and time
 			const dateResponse = await this.connection.sendCommand('TMD+DATE?')
@@ -180,10 +190,36 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 				this.setVariableValues({ current_time: timeParsed.value })
 			}
 
+			// Signal state drives feedbacks, so it is polled with the other fast-changing values
+			const projectorType = this.getProjectorType()
+			if (projectorType !== 'unknown') {
+				await this.pollAllSignalData(projectorType)
+			}
+
 			this.checkAllFeedbacks()
 		} catch (error) {
 			this.log('warn', `Polling error: ${error}`)
+		} finally {
+			this.statusPollRunning = false
 		}
+	}
+
+	/**
+	 * Poll the active test pattern: `test_pattern` holds its name, `test_pattern_id` its ITP number
+	 * (what the test pattern feedback compares against).
+	 */
+	async pollTestPattern(): Promise<void> {
+		const response = await this.connection.sendCommand('ITP?')
+		const parsed = parseResponse(response)
+		if (!parsed) return
+
+		// "(ITP!006 "Checker")": value is the zero padded ITP number, description the name
+		const id = parseInt(parsed.value, 10)
+		this.setVariableValues({
+			test_pattern: parsed.description || parsed.value,
+			test_pattern_id: Number.isNaN(id) ? 'Unknown' : String(id),
+		})
+		this.checkFeedbacks('test_pattern_active')
 	}
 
 	/**
@@ -221,12 +257,13 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 
 	/**
 	 * Comprehensive polling (every 30 minutes)
-	 * Uses combined queries to get all lamp, signal, and system data
+	 * Uses combined queries to get all lamp and system data (signal data is part of the fast poll)
 	 */
 	async pollLampInfo(): Promise<void> {
-		if (!this.connection.isConnected()) {
+		if (!this.connection.isConnected() || this.lampPollRunning) {
 			return
 		}
+		this.lampPollRunning = true
 
 		try {
 			const projectorType = this.getProjectorType()
@@ -235,13 +272,10 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 				return
 			}
 
-			this.log('debug', 'Polling comprehensive data (lamps, signals, system)')
+			this.log('debug', 'Polling comprehensive data (lamps, system)')
 
 			// Poll all lamp data with single query
 			await this.pollAllLampData(projectorType)
-
-			// Poll all signal data with single query
-			await this.pollAllSignalData(projectorType)
 
 			// Poll all system data with single query
 			await this.pollAllSystemData(projectorType)
@@ -249,6 +283,8 @@ export class ModuleInstance extends InstanceBase<ModuleTypes> {
 			this.checkFeedbacks('lamp_hours_threshold')
 		} catch (error) {
 			this.log('warn', `Comprehensive polling error: ${error}`)
+		} finally {
+			this.lampPollRunning = false
 		}
 	}
 

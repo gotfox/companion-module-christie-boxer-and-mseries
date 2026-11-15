@@ -203,7 +203,10 @@ src/
 ├── types.ts          - Module generic types (config/secrets) for InstanceBase
 ├── variables.ts      - Variable definitions
 ├── utils.ts          - Protocol utilities and parsers
-└── upgrades.ts       - Module upgrade scripts
+├── upgrades.ts       - Module upgrade scripts (index 0 is a placeholder, 1 adopts christie-projector connections)
+├── legacy-actions.ts   - christie-projector actions that have no native equivalent (same ids and options)
+├── legacy-variables.ts - christie-projector variable ids, kept up to date as aliases of the new variables
+└── legacy-presets.ts   - christie-projector presets
 ```
 
 ## Development Notes
@@ -240,6 +243,14 @@ src/
 - Use the Custom Command action to test new commands
 - Monitor debug logs for protocol-level details
 - Verify response parsing with known projector responses
+
+## christie-projector compatibility
+
+`companion/manifest.json` lists `christie-projector` in `legacyIds`. Stored buttons from that module keep working:
+see "Migrating from companion-module-christie-projector" in README.md. Do not remove or reorder upgrade scripts;
+index 0 is a placeholder because the old module had one. `main.ts` overrides `setVariableValues` to maintain the
+legacy variable aliases, and the signal state is polled with the fast poll because the legacy `signal_state`
+feedback depends on it.
 
 ## Troubleshooting
 

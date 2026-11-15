@@ -2,6 +2,7 @@ import type { CompanionActionDefinitions, CompanionActionEvent } from '@companio
 import type { ModuleInstance } from './main.js'
 import { MSERIES_INPUT_SLOTS, MSERIES_INPUTS_PER_SLOT, getTestPatterns } from './test-patterns.js'
 import { optionString, type ProjectorType } from './utils.js'
+import { GetLegacyActions } from './legacy-actions.js'
 
 // Track active lens movements
 const activeLensMovements = new Map<string, NodeJS.Timeout>()
@@ -84,6 +85,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 				try {
 					await self.connection.sendCommand(`ITP ${optionString(event.options.pattern)}`)
 					self.log('info', `Test pattern ${optionString(event.options.pattern)} sent`)
+					// Update the test pattern buttons now instead of at the next poll
+					await self.pollTestPattern()
 				} catch (error) {
 					self.log('error', `Test pattern failed: ${error}`)
 				}
@@ -511,7 +514,8 @@ export function UpdateActions(self: ModuleInstance, projectorType: ProjectorType
 		},
 	}
 
-	self.setActionDefinitions(actions)
+	// Actions of companion-module-christie-projector that have no native equivalent
+	self.setActionDefinitions({ ...GetLegacyActions(self), ...actions })
 }
 
 /**

@@ -8,6 +8,7 @@ import type { ModuleInstance } from './main.js'
 import { MSERIES_INPUT_SLOTS, MSERIES_INPUTS_PER_SLOT, getTestPatterns } from './test-patterns.js'
 import type { ModuleTypes } from './types.js'
 import type { ProjectorType } from './utils.js'
+import { LEGACY_PRESETS } from './legacy-presets.js'
 
 type LayeredPreset = CompanionLayeredButtonPresetDefinition<ModuleTypes>
 
@@ -96,6 +97,33 @@ function actionPreset(
 		elements: buttonFace(text, bgcolor),
 		steps: [{ down: [{ actionId, options }], up: [] }],
 		feedbacks: [],
+	}
+}
+
+/**
+ * Test pattern button: dim until its pattern is displayed, then highlighted.
+ * The other pattern buttons stay dim, so only the active one looks selected.
+ */
+function testPatternPreset(pattern: { id: number; label: string }): LayeredPreset {
+	const isOff = pattern.id === 0
+	return {
+		type: 'layered',
+		name: `Test Pattern: ${pattern.label}`,
+		elements: buttonFace(isOff ? 'TEST\nOFF' : pattern.label, isOff ? combineRgb(100, 0, 0) : combineRgb(60, 60, 60)),
+		steps: [{ down: [{ actionId: 'test_pattern', options: { pattern: pattern.id } }], up: [] }],
+		feedbacks: [
+			{
+				feedbackId: 'test_pattern_active',
+				options: { pattern: pattern.id },
+				styleOverrides: [
+					{
+						elementId: 'bg',
+						elementProperty: 'color',
+						override: isOff ? combineRgb(200, 0, 0) : combineRgb(0, 170, 0),
+					},
+				],
+			},
+		],
 	}
 }
 
@@ -200,13 +228,7 @@ export function UpdatePresets(self: ModuleInstance, projectorType: ProjectorType
 	const testPatternPresetIds: string[] = []
 	for (const pattern of getTestPatterns(projectorType)) {
 		const id = `test_pattern_${pattern.id}`
-		presets[id] = actionPreset(
-			`Test Pattern: ${pattern.label}`,
-			pattern.id === 0 ? 'TEST\nOFF' : pattern.label,
-			pattern.id === 0 ? combineRgb(100, 0, 0) : combineRgb(60, 60, 60),
-			'test_pattern',
-			{ pattern: pattern.id },
-		)
+		presets[id] = testPatternPreset(pattern)
 		testPatternPresetIds.push(id)
 	}
 
@@ -260,6 +282,39 @@ export function UpdatePresets(self: ModuleInstance, projectorType: ProjectorType
 			],
 		},
 	]
+
+	// Presets of companion-module-christie-projector, grouped by their original categories
+	const legacyDefinitions = new Map<string, string[]>()
+	LEGACY_PRESETS.forEach((legacy, index) => {
+		const id = `legacy_${index}`
+		presets[id] = {
+			type: 'simple',
+			name: legacy.n,
+			style: {
+				text: legacy.t.replace('$(LABEL:', `$(${self.label}:`),
+				size: legacy.sz as '18',
+				color: legacy.fg,
+				bgcolor: legacy.bg,
+			},
+			steps: legacy.s,
+			feedbacks: legacy.f,
+		}
+		const ids = legacyDefinitions.get(legacy.c) ?? []
+		ids.push(id)
+		legacyDefinitions.set(legacy.c, ids)
+	})
+
+	structure.push({
+		id: 'legacy',
+		name: 'Christie Projector (legacy)',
+		description: 'Presets of the christie-projector module, using its action ids',
+		definitions: [...legacyDefinitions].map(([category, ids]) => ({
+			id: `legacy_${category.replace(/\W+/g, '_').toLowerCase()}`,
+			type: 'simple' as const,
+			name: category,
+			presets: ids,
+		})),
+	})
 
 	self.setPresetDefinitions(structure, presets)
 }

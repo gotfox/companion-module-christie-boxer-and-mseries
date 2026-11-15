@@ -1,6 +1,7 @@
 import type { CompanionVariableDefinitions } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import type { ProjectorType } from './utils.js'
+import { LEGACY_VARIABLES } from './legacy-variables.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: ProjectorType = 'unknown'): void {
 	const variables: { variableId: string; name: string }[] = [
@@ -12,6 +13,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: P
 		{ variableId: 'shutter_status', name: 'Shutter Status' },
 		{ variableId: 'current_input', name: 'Current Input' },
 		{ variableId: 'test_pattern', name: 'Test Pattern' },
+		{ variableId: 'test_pattern_id', name: 'Test Pattern Number' },
 		{ variableId: 'current_date', name: 'Current Date' },
 		{ variableId: 'current_time', name: 'Current Time' },
 
@@ -141,6 +143,10 @@ export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: P
 	}
 
 	const definitions: CompanionVariableDefinitions = {}
+	// Ids from christie-projector first: where an id exists in both modules the definition below wins
+	for (const { variableId, name } of LEGACY_VARIABLES) {
+		definitions[variableId] = { name: `${name} (christie-projector)` }
+	}
 	for (const { variableId, name } of variables) {
 		definitions[variableId] = { name }
 	}
@@ -156,6 +162,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: P
 		shutter_status: 'Unknown',
 		current_input: 'Unknown',
 		test_pattern: 'Unknown',
+		test_pattern_id: 'Unknown',
 		current_date: 'Unknown',
 		current_time: 'Unknown',
 
@@ -274,5 +281,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance, projectorType: P
 		})
 	}
 
-	self.setVariableValues(initialValues)
+	// christie-projector variables that this projector type has no source for are empty, as they were before
+	const emptyLegacyValues = Object.fromEntries(LEGACY_VARIABLES.map(({ variableId }) => [variableId, '']))
+	self.setVariableValues({ ...emptyLegacyValues, ...initialValues })
 }

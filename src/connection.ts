@@ -6,7 +6,8 @@ interface QueuedCommand {
 	command: string
 	resolve: (response: string) => void
 	reject: (error: Error) => void
-	timeout: NodeJS.Timeout
+	/** Started when the command is actually sent, not when it is queued */
+	timeout?: NodeJS.Timeout
 	isMultiResponse?: boolean // For SST queries that return multiple responses
 	accumulatedResponses?: string[] // Collected responses for multi-response commands
 	multiResponseTimer?: NodeJS.Timeout // Timer to detect end of response stream
@@ -18,7 +19,8 @@ export class ChristieConnection {
 	private commandQueue: QueuedCommand[] = []
 	private currentCommand: QueuedCommand | null = null
 	private receiveBuffer: string = ''
-	private readonly RESPONSE_TIMEOUT = 1000
+	// Projectors can take 1-2 seconds to answer a status query, especially when busy
+	private readonly RESPONSE_TIMEOUT = 3000
 	private readonly MULTI_RESPONSE_DELAY = 200 // Wait 200ms for all SST responses to arrive
 
 	constructor(instance: ModuleInstance) {
@@ -97,7 +99,10 @@ export class ChristieConnection {
 
 			this.instance.log('debug', `Received: ${response}`)
 
-			if (this.currentCommand) {
+			if (this.currentCommand && !this.isResponseToCommand(response, this.currentCommand.command)) {
+				// A reply to a command that already timed out: don't hand it to the command that is waiting now
+				this.instance.log('debug', `Ignoring unexpected response while waiting for ${this.currentCommand.command}`)
+			} else if (this.currentCommand) {
 				// Check if this is a multi-response command (SST queries)
 				if (this.currentCommand.isMultiResponse) {
 					// Accumulate this response
@@ -145,22 +150,10 @@ export class ChristieConnection {
 			// Detect if this is a multi-response SST query
 			const isMultiResponse = wrappedCommand.includes('SST+') && wrappedCommand.includes('?')
 
-			const timeout = setTimeout(() => {
-				if (this.currentCommand && this.currentCommand.command === wrappedCommand) {
-					if (this.currentCommand.multiResponseTimer) {
-						clearTimeout(this.currentCommand.multiResponseTimer)
-					}
-					this.currentCommand = null
-					reject(new Error(`Command timeout: ${wrappedCommand}`))
-					this.processQueue()
-				}
-			}, this.RESPONSE_TIMEOUT)
-
 			this.commandQueue.push({
 				command: wrappedCommand,
 				resolve,
 				reject,
-				timeout,
 				isMultiResponse,
 			})
 
@@ -175,17 +168,39 @@ export class ChristieConnection {
 			return
 		}
 
-		this.currentCommand = this.commandQueue.shift()!
+		const command = this.commandQueue.shift()!
+		this.currentCommand = command
 
 		if (!this.socket) {
-			clearTimeout(this.currentCommand.timeout)
-			this.currentCommand.reject(new Error('Not connected'))
+			command.reject(new Error('Not connected'))
 			this.currentCommand = null
 			return
 		}
 
-		this.instance.log('debug', `Sending: ${this.currentCommand.command}`)
-		void this.socket.send(this.currentCommand.command)
+		command.timeout = setTimeout(() => {
+			if (this.currentCommand !== command) return
+			if (command.multiResponseTimer) {
+				clearTimeout(command.multiResponseTimer)
+			}
+			this.currentCommand = null
+			command.reject(new Error(`Command timeout: ${command.command}`))
+			this.processQueue()
+		}, this.RESPONSE_TIMEOUT)
+
+		this.instance.log('debug', `Sending: ${command.command}`)
+		void this.socket.send(command.command)
+	}
+
+	/**
+	 * True unless the response is clearly for a different command.
+	 * "(PWR 1)" / "(PWR?)" are answered with "(PWR!001 ...)"; error replies and anything
+	 * not in the "NAME!" form are accepted as before.
+	 */
+	private isResponseToCommand(response: string, command: string): boolean {
+		const responseName = response.match(/^\(([A-Za-z0-9+]+)!/)?.[1]
+		const commandName = command.match(/^\(([A-Za-z0-9+]+)/)?.[1]
+		if (!responseName || !commandName) return true
+		return responseName.toUpperCase() === commandName.toUpperCase()
 	}
 
 	public isConnected(): boolean {

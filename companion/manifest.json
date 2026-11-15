@@ -15,8 +15,19 @@
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
-	"legacyIds": [],
+	"legacyIds": [
+		"christie-projector"
+	],
 	"manufacturer": "Christie Digital",
-	"products": ["Boxer 4K", "M-Series"],
-	"keywords": ["projector", "christie", "boxer", "mseries", "professional"]
+	"products": [
+		"Boxer 4K",
+		"M-Series"
+	],
+	"keywords": [
+		"projector",
+		"christie",
+		"boxer",
+		"mseries",
+		"professional"
+	]
 }

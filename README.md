@@ -138,6 +138,27 @@ src/
 └── upgrades.ts       - Module upgrade scripts
 ```
 
+## Migrating from companion-module-christie-projector
+
+This module declares `christie-projector` in `legacyIds`, so existing connections of that module are adopted
+and keep their buttons. Keep the connection label unchanged: variable references in button text use it.
+
+| What | How it is handled |
+| --- | --- |
+| Connection config | Upgrade script: `interval` becomes `pollingInterval`, `pjtype` becomes `projectorType`, `port` becomes a number |
+| `pwr`, `shu`, `osd`, `itpBoxer`, `itpMser` actions | Upgrade script converts them to `power`, `shutter`, `osd` and `test_pattern` |
+| `power_state` feedback (one color per state) | Upgrade script renames it to `power_state_colors` (`power_state` is now the boolean feedback) |
+| `shutter_closed`, `signal_state` feedbacks | Kept under their original ids and options (advanced feedbacks, `legacy` section in `feedbacks.ts`) |
+| All other actions (`brt`, `con`, `lpm`, `sinSlot`, `lensshift_*`, ...) | Kept under their original ids and options (`legacy-actions.ts`) |
+| Variables (`lamp_1`, `power_state`, `signal_state`, `motorposition_*`, ...) | Kept up to date as aliases of the new variables (`legacy-variables.ts`) |
+| Presets | Listed under "Christie Projector (legacy)" (`legacy-presets.ts`) |
+
+Not carried over, because this module has no source for them: the `standby`, `osd_enabled`, `input_channel`,
+`input_slot` and `pip_enabled` feedbacks and variables.
+
+The upgrade script list must keep the placeholder at index 0: `christie-projector` ran one placeholder script,
+so adopted connections start at index 1.
+
 ## Troubleshooting
 
 ### Connection Issues
